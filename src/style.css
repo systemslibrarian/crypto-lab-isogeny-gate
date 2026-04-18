@@ -1,0 +1,110 @@
+:root {
+  --color-bg: #0a0e27;
+  --color-text: #e0e6ff;
+  --color-accent: #00d4ff;
+  --color-safe: #1a4a8a;
+  --color-alice: #00ff88;
+  --color-bob: #ff00ff;
+  --color-shared: #ffd700;
+  --color-leak: #ff3366;
+}
+
+[data-theme='light'] {
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-accent: #0088cc;
+  --color-safe: #4a7aaa;
+  --color-alice: #008844;
+  --color-bob: #bb00bb;
+  --color-shared: #cc8800;
+  --color-leak: #cc0033;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+header {
+  padding: 1.5rem 1rem;
+  border-bottom: 1px solid var(--color-accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.theme-toggle:hover {
+  background-color: rgba(0, 212, 255, 0.1);
+}
+
+main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+canvas {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem 1rem;
+  border-top: 1px solid var(--color-accent);
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-top: 4rem;
+}
+
+/* Mobile-first responsive */
+@media (max-width: 767px) {
+  header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+  }
+
+  main {
+    padding: 1rem 0.5rem;
+  }
+
+  canvas {
+    max-width: 100%;
+  }
+}

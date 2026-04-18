@@ -6,9 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>crypto-lab-isogeny-gate</title>
   <script>
-    // Anti-flash of wrong theme
-    const t = localStorage.getItem('cv-theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', t);
+    (function () {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+    })();
   </script>
   <link rel="stylesheet" href="/src/style.css" />
 </head>

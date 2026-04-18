@@ -5,12 +5,18 @@ import { buildIsogenyGraph, drawIsogenyGraph, randomWalk } from './isogeny-graph
 const app = document.getElementById('app');
 if (!app) throw new Error('No #app element');
 
-let currentTheme = localStorage.getItem('cv-theme') || 'dark';
+let currentTheme = localStorage.getItem('theme') || 'dark';
 
 const html = `
   <header>
     <h1>🔗 crypto-lab-isogeny-gate</h1>
-    <button class="theme-toggle" id="theme-toggle">${currentTheme === 'dark' ? '☀️' : '🌙'}</button>
+    <button 
+      class="theme-toggle-btn" 
+      id="theme-toggle" 
+      aria-label="${currentTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}"
+    >
+      ${currentTheme === 'dark' ? '🌙' : '☀️'}
+    </button>
   </header>
   <main>
     <section id="exhibit-1">
@@ -67,8 +73,9 @@ const htmlEl = document.documentElement;
 themeToggle.addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   htmlEl.setAttribute('data-theme', currentTheme);
-  localStorage.setItem('cv-theme', currentTheme);
-  themeToggle.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('theme', currentTheme);
+  themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+  themeToggle.setAttribute('aria-label', currentTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
 });
 
 // Exhibit 1: Isogeny

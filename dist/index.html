@@ -6,12 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>crypto-lab-isogeny-gate</title>
   <script>
-    // Anti-flash of wrong theme
-    const t = localStorage.getItem('cv-theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', t);
+    (function () {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+    })();
   </script>
-  <script type="module" crossorigin src="/crypto-lab-isogeny-gate/assets/index-Dgc_g-00.js"></script>
-  <link rel="stylesheet" crossorigin href="/crypto-lab-isogeny-gate/assets/index-BIigxFo5.css">
+  <script type="module" crossorigin src="/crypto-lab-isogeny-gate/assets/index-D1iAEIeZ.js"></script>
+  <link rel="stylesheet" crossorigin href="/crypto-lab-isogeny-gate/assets/index-Cq3jfCmp.css">
 </head>
 <body>
   <div id="app"></div>

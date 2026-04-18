@@ -1,139 +1,47 @@
 # crypto-lab-isogeny-gate
 
-**Browser-based educational demo covering the complete arc of isogeny-based cryptography: from the elegant mathematics of elliptic curve isogenies, through SIDH/SIKE's decade of promise as a post-quantum KEM, to the catastrophic Castryck-Decru break of August 2022, to the modern survivors (CSIDH, SQIsign) that were unaffected.**
-
-> "Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God."
-> — 1 Corinthians 10:31
-
 ## What It Is
 
-This demo tells the story of security assumptions collapsing not from theoretical weakness, but from the emergence of new mathematical tools.
+Elliptic curve isogenies are group homomorphisms between elliptic curves that preserve the group structure. This demo explores isogenies as they appeared in the post-quantum cryptography world: the elegant theory behind SIDH (Supersingular Isogeny Diffie-Hellman), their decade-long promise as a post-quantum KEM candidate, the mathematical machinery that broke them (the Castryck-Decru attack, August 2022), and the modern survivors (SQIsign, CSIDH) that remain under active research. The security model is asymmetric (public-key cryptography); the problem is hardness of computing isogeny paths in supersingular expander graphs.
 
-**The arc:**
-- **2011–2022** (ACT 1): SIDH proposed. 10 years of scrutiny. No breaks. NIST Round 4.
-- **August 5, 2022** (ACT 2): Castryck & Decru. One hour on a laptop. SIKE withdrawn.
-- **2024–2025** (ACT 3): CSIDH under scrutiny. SQIsign in NIST Round 2. The path survives differently.
+## When to Use It
+
+- **For teaching post-quantum cryptography**: Isogenies represent a different mathematical foundation than lattices or hash-based schemes. Use this demo to show why NIST's multi-family approach matters.
+  
+- **For understanding structure-breaking attacks**: The Castryck-Decru attack is not a parameter-tuning failure—it exploits auxiliary information (torsion point images) that seemed safe for a decade.
+
+- **For learning how beautiful math fails in practice**: Isogenies are among the most elegant post-quantum candidates. This demo shows that elegance and years of scrutiny do not guarantee security.
+
+- **When NOT to use it**: Do not use SIDH, SIKE, or isogeny-based key exchange for production. Use ML-KEM (NIST FIPS 203) instead. Do not assume SQIsign is production-ready (it is NIST Round 2 only, not standardized, still under cryptanalysis).
 
 ## Live Demo
 
-[https://systemslibrarian.github.io/crypto-lab-isogeny-gate/](https://systemslibrarian.github.io/crypto-lab-isogeny-gate/)
+**[https://systemslibrarian.github.io/crypto-lab-isogeny-gate/](https://systemslibrarian.github.io/crypto-lab-isogeny-gate/)**
 
-## Core Lessons
+The demo runs five interactive exhibits in your browser:
+1. **What Is an Isogeny?** — Visual definition and example computation.
+2. **The Isogeny Graph** — Expander graph of supersingular elliptic curves with random walk simulation.
+3. **SIDH Key Exchange** — Protocol demonstration; both parties compute the same shared secret.
+4. **The Castryck-Decru Attack** — Brute-force recovery of Alice's secret from published torsion point images.
+5. **Lessons for PQC Design** — Five principles derived from the SIDH break.
 
-1. **Auxiliary Information Is Attack Surface.** SIDH required torsion point images for interop. Seemed transparent. Was fatal.
-2. **Elegance ≠ Security.** Isogenies are mathematically beautiful. Beauty and years of scrutiny are not proofs.
-3. **Different Problems, Different Fates.** The SI-Path problem (SQIsign) survived. Only SI-DH fell.
-4. **Attacks Become Tools.** Castryck-Decru Higher-dimensional isogeny techniques now improve the scheme that survived.
-5. **Diversity Is Essential.** NIST's multi-family approach (lattice, hash, code, isogeny-candidates) prevented a single collapse.
+All exhibits use toy parameters (p=71 for visibility) but apply exact BigInt arithmetic—results are cryptographically valid for small primes.
 
-## Technical Stack
-
-- **Vite** + **TypeScript** (strict)
-- **Vanilla CSS** (dark/light theme)
-- **Canvas 2D** (all visualizations)
-- **BigInt** (exact modular arithmetic, no floating point)
-- **crypto.getRandomValues** (no Math.random)
-- **GitHub Pages** (no backend)
-- **Zero external libraries**
-
-## What's Implemented
-
-### Phase 1: Elliptic Curve Arithmetic (`src/ec.ts`)
-- Point addition, scalar multiplication over GF(p)
-- Modular inversion (Fermat), modular exponentiation
-- Tonelli-Shanks for square roots
-- Point enumeration (small p only)
-- Vélu's isogeny formula
-- j-invariant computation
-- Supersingularity check
-
-### Phase 2: Toy SIDH (`src/sidh.ts`)
-- Simplified SIDH key generation (Alice & Bob)
-- Shared secret computation
-- **Castryck-Decru toy attack**: recovers secret from torsion images via brute-force candidate search
-- Demonstrates structure even with simplified arithmetic
-
-### Phase 3: Isogeny Graph (`src/isogeny-graph.ts`)
-- Basic graph structure: nodes (j-invariants), edges (isogenies)
-- Random walks on the expander graph
-- Canvas visualization with path highlighting
-
-### Phase 4: Interactive UI (`src/main.ts`)
-- **Exhibit 1**: What is an isogeny? (definition + diagram)
-- **Exhibit 2**: The isogeny graph (expander graph visualization)
-- **Exhibit 3**: SIDH key exchange (protocol simulation)
-- **Exhibit 4**: Castryck-Decru attack (step-by-step recovery)
-- **Exhibit 5**: Lessons for PQC design (five principles)
-- Dark/light theme toggle
-- Responsive layout (mobile-first)
-
-### Phase 6: Accessibility & Polish
-- **WCAG 2.1 AA**: aria-labels on canvases, semantic time elements
-- **Dark/light theme**: localStorage persistence
-- **Mobile-first**: 320px–1440px responsive
-- **Scripture footer** (verbatim 1 Corinthians 10:31)
-
-### Phase 7: Verification (Final Checklist)
-```
-✓ npm run build — zero TypeScript errors
-✓ EC point addition & scalar mul correct over GF(71)
-✓ Vélu isogeny: kernel maps to identity
-✓ SIDH exchange: both parties compute same shared secret
-✓ Castryck-Decru: recovers Alice's secret from public key
-✓ Isogeny graph: correct structure (no test failures)
-✓ No Math.random() anywhere
-✓ No claims CSIDH/SQIsign are proven secure
-✓ No claims SQIsign is standardized (Round 2 only)
-✓ Timeline dates accurate (August 5, 2022 for attack)
-```
-
-## Warnings & Disclaimers
-
-- **TOY PARAMETERS:** p=71. Real SIKE: p = 2^a * 3^b - 1 (a,b~216). Do NOT derive security from toy primes.
-- **SIKE/SIDH:** Insecure. No parameter set is safe. (NIST official statement.)
-- **CSIDH:** Subexponential classical attacks known. Security parameters debated. Not NIST standardized.
-- **SQIsign v2.0:** NIST Round 2 (2025), under active cryptanalysis. NOT standardized. Experimental.
-- **Attack Implementation:** Toy Castryck-Decru uses brute-force candidate search. Real attack: Kani's producibility criterion (higher-dimensional isogenies). Principles identical; scale differs.
-
-## Real-World Usage
-
-**For Post-Quantum Key Exchange:** Use ML-KEM (FIPS 203).
-
-**For Small-Key Signatures with Quantum Resistance:** Monitor SQIsign standardization.
-
-**For Diversity:** BIKE and HQC (code-based, NIST Round 4 alternates).
-
-## Deployment
+## How to Run Locally
 
 ```bash
+git clone https://github.com/systemslibrarian/crypto-lab-isogeny-gate
+cd crypto-lab-isogeny-gate
 npm install
-npm run build
-# distributes to ./dist/
-# GitHub Pages: push to gh-pages branch
+npm run dev
 ```
 
-## Anti-Hallucination Rules
+Then open `http://localhost:5173/` in your browser. To build for production: `npm run build`.
 
-- No `Math.random()` — ever. `crypto.getRandomValues()` only.
-- No production SIDH/SIKE implementation.
-- Torsion leak: explicitly stated as SIDH's vulnerability (not broader).
-- SQIsign status: Round 2 candidate (not proven, not standardized).
-- Isogeny PATH problem: survived, undamaged. Only EXCHANGE (SIDH) broke.
+## Part of the Crypto-Lab Suite
 
-## Repository Information
-
-- **Owner:** systemslibrarian
-- **Repo:** crypto-lab-isogeny-gate
-- **Topics:** cryptography, post-quantum, isogeny, SIDH, SIKE, Castryck-Decru, SQIsign, CSIDH, elliptic-curves, browser-demo, educational, TypeScript, Vite
-
-## References
-
-- Jao, De Feo: "Towards quantum-resistant cryptosystems from supersingular elliptic curve isogenies" (2011)
-- Castryck, Decru: "An efficient key recovery attack on SIDH" (ePrint 2022/975, August 5, 2022)
-- Maino, Martindale, Robert confirmations (September 2022)
-- NIST PQC Standardization: https://csrc.nist.gov/projects/post-quantum-cryptography/
-- SQIsign v2.0 (2025): Upcoming NIST Round 2 additional signature candidate
+One of 60+ live browser demos at [systemslibrarian.github.io/crypto-lab](https://systemslibrarian.github.io/crypto-lab/) — spanning Atbash (600 BCE) through NIST FIPS 203/204/205 (2024).
 
 ---
 
-**"Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God." — 1 Corinthians 10:31**
+*"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*

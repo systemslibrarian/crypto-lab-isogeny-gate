@@ -50,8 +50,8 @@
       </ul>
     </section>
   </main>
-  <footer>
-    <p>"Whether therefore ye eat, or drink, or whatsoever ye do,<br/>do all to the glory of God."<br/>— 1 Corinthians 10:31</p>
+  <footer class="scripture-footer">
+    <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
   </footer>
 `;A.innerHTML=M;const f=document.getElementById("theme-toggle"),T=document.documentElement;f.addEventListener("click",()=>{g=g==="dark"?"light":"dark",T.setAttribute("data-theme",g),localStorage.setItem("theme",g),f.textContent=g==="dark"?"🌙":"☀️",f.setAttribute("aria-label",g==="dark"?"Switch to light mode":"Switch to dark mode")});const _=document.getElementById("btn-run-isogeny"),b=document.getElementById("canvas-isogeny");_.addEventListener("click",()=>{const e=b.getContext("2d");e&&(e.fillStyle="rgba(10, 14, 39, 1)",e.fillRect(0,0,b.width,b.height),e.fillStyle="#00d4ff",e.font="16px monospace",e.fillText("E: y² = x³ + ax + b",50,50),e.fillText("↓ φ (Vélu formula)",50,100),e.fillText("E': y² = x³ + a'x + b'",50,150),e.strokeStyle="#00d4ff",e.beginPath(),e.moveTo(200,70),e.lineTo(200,80),e.stroke(),e.arc(200,100,40,0,2*Math.PI),e.stroke())});const H=document.getElementById("btn-random-walk"),B=document.getElementById("canvas-graph"),I=R();w(B,I);H.addEventListener("click",async()=>{const e=$(I,0,5);w(B,I,{highlightPath:e})});const O=document.getElementById("btn-run-sidh"),p=document.getElementById("sidh-output");O.addEventListener("click",async()=>{p.textContent="Running SIDH...";try{const e=await x(),t=E(e.aliceSharedCurve);p.innerHTML=`
 <strong>✓ SIDH Complete</strong>

@@ -59,8 +59,8 @@ const html = `
       </ul>
     </section>
   </main>
-  <footer>
-    <p>"Whether therefore ye eat, or drink, or whatsoever ye do,<br/>do all to the glory of God."<br/>— 1 Corinthians 10:31</p>
+  <footer class="scripture-footer">
+    <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
   </footer>
 `;
 

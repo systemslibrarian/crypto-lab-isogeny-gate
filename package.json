@@ -1,18 +1,25 @@
 {
   "name": "crypto-lab-isogeny-gate",
   "version": "1.0.0",
-  "description": "Browser-based isogeny cryptography demo — elliptic curve isogenies, toy SIDH, Castryck-Decru attack, CSIDH, SQIsign",
+  "description": "Browser-based isogeny cryptography demo — a real toy CSIDH key exchange, the supersingular isogeny graph, and the story of the SIDH/Castryck–Decru break.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "deploy": "npm run build && gh-pages -d dist"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20.10.0",
     "gh-pages": "^6.3.0",
+    "jsdom": "^29.1.1",
     "typescript": "^5.3.3",
-    "vite": "^5.0.7"
+    "vite": "^5.0.7",
+    "vitest": "^4.1.9"
   }
 }

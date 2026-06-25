@@ -3,8 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, and let it finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -13,6 +17,9 @@ jobs:
       contents: read
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout code
@@ -26,6 +33,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Typecheck and test
+        run: |
+          npm run typecheck
+          npm test
 
       - name: Build
         run: npm run build

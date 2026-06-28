@@ -1,11 +1,11 @@
 # crypto-lab-isogeny-gate
 
+## What It Is
+
 A browser demo of **isogeny-based cryptography**: a real (but tiny) commutative
 isogeny key exchange, the supersingular isogeny graph it walks, and the story of
 the scheme that fell. Every number on the page is computed live with exact
 BigInt arithmetic over `GF(419)` — none of it is mocked.
-
-## What It Is
 
 Elliptic-curve isogenies are non-trivial maps between elliptic curves that
 preserve the group structure. They underpin a family of post-quantum proposals
@@ -32,19 +32,18 @@ scheme that was a NIST candidate for a decade until the **Castryck–Decru attac
 The parameters (`p = 419`, ℓ ∈ {5, 7}) are chosen for visibility and are
 trivially breakable. **This is a teaching tool, not a cryptographic library.**
 
-## Why CSIDH, to tell SIDH's story?
+## When to Use It
 
-SIDH and CSIDH are cousins. SIDH had each party publish, alongside their curve,
-the **images of torsion points** under their secret isogeny. Those images were
-believed safe for ten years — and were exactly what Castryck and Decru used to
-reconstruct the secret. CSIDH publishes **only a curve**, no torsion images, so
-that specific attack does not apply to it. Demonstrating a working CSIDH and then
-explaining what extra information sank SIDH is the most honest way to show *why*
-beautiful, well-scrutinised math can still fail.
+- **Teaching post-quantum cryptography** — isogenies are a different foundation
+  from lattices or hashes; this shows why NIST's multi-family approach matters.
+- **Understanding structure-breaking attacks** — Castryck–Decru was not a
+  parameter-tuning failure; it exploited auxiliary data that looked harmless.
+- **Do NOT use it for anything real** — never use SIDH/SIKE in production, and do
+  not use this toy for anything real. For key encapsulation use **ML-KEM** (NIST FIPS 203).
 
 ## Live Demo
 
-**[https://systemslibrarian.github.io/crypto-lab-isogeny-gate/](https://systemslibrarian.github.io/crypto-lab-isogeny-gate/)**
+**[systemslibrarian.github.io/crypto-lab-isogeny-gate](https://systemslibrarian.github.io/crypto-lab-isogeny-gate/)**
 
 Five interactive exhibits:
 
@@ -58,16 +57,48 @@ Five interactive exhibits:
    key, and explains the real Castryck–Decru break of SIDH.
 5. **Lessons for PQC design** — Five principles drawn from the SIDH story.
 
+## What Can Go Wrong
+
+- **Auxiliary data can be the weakness.** SIDH published the images of torsion points under each party's secret isogeny; those images looked harmless for a decade and were exactly what the Castryck–Decru attack used to recover the secret.
+- **Long scrutiny is not proof of security.** SIDH/SIKE survived ten years of analysis and multiple NIST rounds before a fast *classical* break ended it.
+- **Toy parameters offer no security.** This demo's `GF(419)` field and tiny key space are for visibility only and are exhaustively breakable.
+- **CSIDH is subtle in its own right.** Concrete CSIDH security levels and constant-time implementations of the group action remain actively studied; "the SIDH attack does not apply" is not the same as "fast and safe at scale."
+
+## Real-World Usage
+
+- **SIDH/SIKE** was a NIST PQC alternate KEM candidate until the 2022 Castryck–Decru attack; it is no longer recommended for any use.
+- **CSIDH** is studied as a compact, commutative isogeny key exchange with very small keys, of ongoing academic interest.
+- **SQIsign** is an isogeny-based signature submitted to NIST's additional-signatures process, notable for very small signatures.
+- **Isogeny machinery** — including the higher-dimensional isogeny techniques behind the SIDH break — is now an active research tool across cryptography and number theory.
+
 ## How to Run Locally
 
 ```bash
 git clone https://github.com/systemslibrarian/crypto-lab-isogeny-gate
 cd crypto-lab-isogeny-gate
 npm install
-npm run dev        # http://localhost:5173/
+npm run dev
 ```
 
-Other scripts:
+## Related Demos
+
+- [crypto-lab-pq-families](https://systemslibrarian.github.io/crypto-lab-pq-families/) — the lattice / code / hash / multivariate / isogeny PQ landscape this demo sits in.
+- [crypto-lab-kyber-vault](https://systemslibrarian.github.io/crypto-lab-kyber-vault/) — ML-KEM (FIPS 203), the lattice KEM recommended in place of SIDH.
+- [crypto-lab-mceliece-gate](https://systemslibrarian.github.io/crypto-lab-mceliece-gate/) — Classic McEliece, a code-based PQ KEM from another family.
+- [crypto-lab-multivariate](https://systemslibrarian.github.io/crypto-lab-multivariate/) — UOV multivariate signatures, another non-lattice PQ family.
+- [crypto-lab-lll-break](https://systemslibrarian.github.io/crypto-lab-lll-break/) — LLL/BKZ lattice reduction, the structure-breaking attack tradition in another PQ family.
+
+## Why CSIDH, to tell SIDH's story?
+
+SIDH and CSIDH are cousins. SIDH had each party publish, alongside their curve,
+the **images of torsion points** under their secret isogeny. Those images were
+believed safe for ten years — and were exactly what Castryck and Decru used to
+reconstruct the secret. CSIDH publishes **only a curve**, no torsion images, so
+that specific attack does not apply to it. Demonstrating a working CSIDH and then
+explaining what extra information sank SIDH is the most honest way to show *why*
+beautiful, well-scrutinised math can still fail.
+
+## Testing
 
 ```bash
 npm test           # run the test suite (vitest)
@@ -80,21 +111,8 @@ bound, supersingularity, that Vélu codomains stay supersingular, that the
 group action commutes, that Alice and Bob always agree, and that the brute-force
 recovery reproduces the public key.
 
-## When to Use It
-
-- **Teaching post-quantum cryptography** — isogenies are a different foundation
-  from lattices or hashes; this shows why NIST's multi-family approach matters.
-- **Understanding structure-breaking attacks** — Castryck–Decru was not a
-  parameter-tuning failure; it exploited auxiliary data that looked harmless.
-- **When NOT to use it** — never use SIDH/SIKE in production, and do not use this
-  toy for anything real. For key encapsulation use **ML-KEM** (NIST FIPS 203).
-
-## Part of the Crypto-Lab Suite
-
-One of 60+ live browser demos at
-[systemslibrarian.github.io/crypto-lab](https://systemslibrarian.github.io/crypto-lab/)
-— spanning Atbash (600 BCE) through NIST FIPS 203/204/205 (2024).
-
 ---
+
+*One of 60+ browser demos in the [Crypto Lab](https://crypto-lab.systemslibrarian.dev/) suite.*
 
 *"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*

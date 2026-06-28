@@ -134,6 +134,13 @@ app.innerHTML = `
   </main>
 
   <footer class="scripture-footer">
+    <p>Related demos:
+      <a href="https://systemslibrarian.github.io/crypto-lab-pq-families/" target="_blank" rel="noopener">crypto-lab-pq-families</a> ·
+      <a href="https://systemslibrarian.github.io/crypto-lab-kyber-vault/" target="_blank" rel="noopener">crypto-lab-kyber-vault</a> ·
+      <a href="https://systemslibrarian.github.io/crypto-lab-mceliece-gate/" target="_blank" rel="noopener">crypto-lab-mceliece-gate</a> ·
+      <a href="https://systemslibrarian.github.io/crypto-lab-multivariate/" target="_blank" rel="noopener">crypto-lab-multivariate</a> ·
+      <a href="https://systemslibrarian.github.io/crypto-lab-lll-break/" target="_blank" rel="noopener">crypto-lab-lll-break</a>
+    </p>
     <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
   </footer>
 `;

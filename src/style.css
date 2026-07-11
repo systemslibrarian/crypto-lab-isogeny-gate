@@ -1,25 +1,50 @@
-:root {
-  color-scheme: dark;
-  --color-bg: #0a0e27;
-  --color-text: #e0e6ff;
-  --color-accent: #00d4ff;
-  --color-safe: #1a4a8a;
-  --color-alice: #00ff88;
-  --color-bob: #ff00ff;
-  --color-shared: #ffd700;
-  --color-leak: #ff3366;
+/* ------------------------------------------------------------------ *
+ * Theme tokens. Colours are chosen so body text and UI controls meet
+ * WCAG AA contrast (>= 4.5:1 for text) against their backgrounds in
+ * both themes.
+ * ------------------------------------------------------------------ */
+
+:root,
+[data-theme='dark'] {
+  --accent: #35d6bb; /* consumed by the shared Crypto Lab header */
+
+  --c-bg: #0a0e27;
+  --c-surface: #141a3a;
+  --c-text: #e7ebff;
+  --c-muted: #aab4dd;
+  --c-accent: #5ad6ff;
+  --c-accent-strong: #8ee4ff;
+  --c-border: #2c376b;
+
+  --canvas-bg: #0c1330;
+  --c-alice: #3ee08a;
+  --c-bob: #ff7ad6;
+  --c-shared: #ffd24a;
+  --c-leak: #ff6080;
+  --c-edge: #3c4a93;
+  --c-ell-a: #5ad6ff;
+  --c-ell-b: #c08bff;
 }
 
 [data-theme='light'] {
-  color-scheme: light;
-  --color-bg: #ffffff;
-  --color-text: #1a1a1a;
-  --color-accent: #0088cc;
-  --color-safe: #4a7aaa;
-  --color-alice: #008844;
-  --color-bob: #bb00bb;
-  --color-shared: #cc8800;
-  --color-leak: #cc0033;
+  --accent: #0e7c6b;
+
+  --c-bg: #ffffff;
+  --c-surface: #f4f7ff;
+  --c-text: #13183a;
+  --c-muted: #45507a;
+  --c-accent: #0b63b8;
+  --c-accent-strong: #094a8c;
+  --c-border: #c5cef0;
+
+  --canvas-bg: #f8faff;
+  --c-alice: #0a7a42;
+  --c-bob: #b0179e;
+  --c-shared: #9a6200;
+  --c-leak: #c01f3f;
+  --c-edge: #aab6e8;
+  --c-ell-a: #0b63b8;
+  --c-ell-b: #7a3cd0;
 }
 
 * {
@@ -28,9 +53,8 @@
   box-sizing: border-box;
 }
 
-html, body, #app {
-  width: 100%;
-  height: 100%;
+html {
+  scroll-behavior: smooth;
 }
 
 html {
@@ -38,96 +62,296 @@ html {
 }
 
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.65;
   transition: background-color 0.3s, color 0.3s;
 }
 
-header {
-  padding: 1.5rem 1rem;
-  border-bottom: 1px solid var(--color-accent);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* ------------------------------------------------------------------ *
+ * Page header
+ * ------------------------------------------------------------------ */
+
+.page-head {
   position: relative;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 1rem;
 }
 
-h1 {
-  font-size: 1.8rem;
-  font-weight: 600;
+.page-head h1 {
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--c-accent), var(--c-ell-b));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tagline {
+  margin-top: 0.6rem;
+  max-width: 60ch;
+  color: var(--c-muted);
 }
 
 .theme-toggle-btn {
   position: absolute;
-  top: 1.5rem;
-  right: 1rem;
+  top: 2.5rem;
+  right: 1.25rem;
   width: 2.6rem;
   height: 2.6rem;
   border-radius: 50%;
-  border: 1px solid var(--color-accent);
-  background-color: transparent;
-  color: var(--color-accent);
+  border: 1px solid var(--c-border);
+  background-color: var(--c-surface);
+  color: var(--c-accent);
   cursor: pointer;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
-  z-index: 10;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .theme-toggle-btn:hover {
-  background-color: rgba(0, 212, 255, 0.1);
+  border-color: var(--c-accent);
 }
 
+/* ------------------------------------------------------------------ *
+ * Layout & sections
+ * ------------------------------------------------------------------ */
+
 main {
-  max-width: 1440px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1rem 1.25rem 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+section {
+  background-color: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+
+section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.6rem;
+  color: var(--c-accent-strong);
+}
+
+section p {
+  margin-bottom: 0.75rem;
+  max-width: 68ch;
+}
+
+.m,
+code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+.m {
+  color: var(--c-accent-strong);
+  font-size: 0.95em;
+}
+
+/* ------------------------------------------------------------------ *
+ * Canvas
+ * ------------------------------------------------------------------ */
+
+.canvas-wrap {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
 }
 
 canvas {
-  background-color: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--color-accent);
-  border-radius: 4px;
+  width: 100%;
+  height: auto;
+  display: block;
+  background-color: var(--canvas-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
 }
 
-footer {
-  text-align: center;
-  padding: 2rem 1rem;
-  border-top: 1px solid var(--color-accent);
+.legend {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+  margin-bottom: 0.75rem;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 0.15rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Buttons
+ * ------------------------------------------------------------------ */
+
+button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.6rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid var(--c-accent);
+  background-color: transparent;
+  color: var(--c-accent);
+  transition: background-color 0.15s, color 0.15s, transform 0.05s;
+}
+
+button:hover {
+  background-color: var(--c-accent);
+  color: var(--canvas-bg);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+:focus-visible {
+  outline: 3px solid var(--c-shared);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Output blocks
+ * ------------------------------------------------------------------ */
+
+.output {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.output:empty {
+  display: none;
+}
+
+.output--alert .result.bad code {
+  color: var(--c-leak);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  background-color: var(--c-bg);
+  border: 1px solid var(--c-border);
+}
+
+.kv > span {
+  color: var(--c-muted);
+  font-size: 0.85rem;
+}
+
+.kv code {
   font-size: 0.9rem;
-  margin-top: 4rem;
+  word-break: break-word;
+}
+
+.kv.result {
+  font-weight: 600;
+}
+
+.kv.result.ok code {
+  color: var(--c-alice);
+}
+
+.kv.result.bad code {
+  color: var(--c-leak);
+}
+
+/* ------------------------------------------------------------------ *
+ * Lessons & footer
+ * ------------------------------------------------------------------ */
+
+.lessons {
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.lessons li {
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.lessons li::before {
+  content: '◆';
+  position: absolute;
+  left: 0;
+  color: var(--c-accent);
+}
+
+.disclaimer {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--c-leak);
+  background-color: var(--c-bg);
+  border-radius: 0 8px 8px 0;
+  color: var(--c-muted);
+  font-size: 0.9rem;
 }
 
 .scripture-footer {
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1.25rem;
   font-size: 0.85rem;
-  border-top: 1px solid var(--color-accent);
-  color: var(--color-text);
-  margin-top: 2rem;
+  color: var(--c-muted);
+  border-top: 1px solid var(--c-border);
+  margin-top: 1rem;
+  max-width: 960px;
+  margin-inline: auto;
 }
 
-/* Mobile-first responsive */
-@media (max-width: 767px) {
-  header {
-    flex-direction: column;
-    gap: 1rem;
-  }
+/* Links. --c-accent-strong is contrast-tuned for both themes (AA against
+ * the page background); underline gives a non-colour affordance. */
+a {
+  color: var(--c-accent-strong);
+  text-decoration: underline;
+}
 
-  h1 {
-    font-size: 1.4rem;
-  }
+a:hover {
+  color: var(--c-accent);
+}
 
-  main {
-    padding: 1rem 0.5rem;
-  }
+a:focus-visible {
+  outline: 2px solid var(--c-accent-strong);
+  outline-offset: 2px;
+}
 
-  canvas {
-    max-width: 100%;
+/* ------------------------------------------------------------------ *
+ * Responsive & motion preferences
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .kv {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  section {
+    padding: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
   }
 }

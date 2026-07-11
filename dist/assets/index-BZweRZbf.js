@@ -36,7 +36,7 @@
       <p><strong>The Vulnerability:</strong> SIDH requires Alice and Bob to publish torsion point images.</p>
       <p><strong>The Attack:</strong> These images uniquely determine the secret isogeny.</p>
       <button id="btn-run-attack">Run Castryck-Decru Attack</button>
-      <div id="attack-output" style="margin-top: 1rem; font-family: monospace; font-size: 0.85rem; background: rgba(255,51,102,0.1); padding: 1rem; border-radius: 4px;"></div>
+      <div id="attack-output" style="margin-top: 1rem; font-family: monospace; font-size: 0.85rem; background-color: rgba(255,51,102,0.1); padding: 1rem; border-radius: 4px;"></div>
     </section>
 
     <section id="exhibit-5">

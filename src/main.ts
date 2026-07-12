@@ -34,13 +34,25 @@ const ELL_A = PARAMS.ells[0]; // 5
 const ELL_B = PARAMS.ells[1]; // 7
 
 app.innerHTML = `
-  <header class="page-head">
-    <h1>Isogeny Gate</h1>
-    <p class="tagline">
-      A real—if tiny—isogeny key exchange, the graph it walks, and the lesson of
-      the scheme that fell. Everything below is computed live with exact
-      arithmetic over <code>GF(${PARAMS.p})</code>.
-    </p>
+  <header class="cl-hero">
+    <div class="cl-hero-main">
+      <h1 class="cl-hero-title">Isogeny Gate</h1>
+      <p class="cl-hero-sub">CSIDH · isogeny key exchange · GF(${PARAMS.p})</p>
+      <p class="cl-hero-desc">
+        Compute a real toy CSIDH commutative group-action key exchange, walk the
+        supersingular isogeny graph it lives on, and brute-force the toy secret to
+        watch the scheme break.
+      </p>
+    </div>
+    <aside class="cl-hero-why" aria-label="Why it matters">
+      <span class="cl-hero-why-label">WHY IT MATTERS</span>
+      <p class="cl-hero-why-text">
+        Isogenies are a leading post-quantum family, yet a decade-trusted cousin,
+        SIDH, collapsed in minutes to the Castryck–Decru attack. Seeing which
+        structure held and which leaked is the difference between a survivor and a
+        cautionary tale.
+      </p>
+    </aside>
     <button class="theme-toggle-btn" id="theme-toggle" type="button"
       aria-label="Toggle color theme">🌙</button>
   </header>

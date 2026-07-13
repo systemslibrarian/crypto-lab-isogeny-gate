@@ -23,6 +23,7 @@ scheme that was a NIST candidate for a decade until the **Castryck–Decru attac
 |---|---|
 | Field & curve arithmetic over `GF(p)` (`ec.ts`) | **Real**, exact BigInt |
 | Vélu ℓ-isogeny codomains | **Real** (classical Vélu formulas) |
+| Vélu ℓ-isogeny point images `φ(P)` (`ec.ts`) | **Real** (Vélu image formula; the map animated in Exhibit 1) |
 | Supersingularity / point counting | **Real** (`#E = p+1`) |
 | CSIDH key exchange (`csidh.ts`) | **Real** group action; Alice and Bob provably agree |
 | Isogeny graph (`graph.ts`) | **Real**, built by walking actual isogenies |
@@ -45,16 +46,30 @@ trivially breakable. **This is a teaching tool, not a cryptographic library.**
 
 **[systemslibrarian.github.io/crypto-lab-isogeny-gate](https://systemslibrarian.github.io/crypto-lab-isogeny-gate/)**
 
+A plain-language primer frames the whole journey, and load-bearing jargon
+(*j-invariant*, *expander*, *group action*, *commutes*, *torsion images*, *Kani's
+lemma*, *abelian surface*) is glossed inline on first use — introduced, not
+assumed — so a newcomer has an on-ramp while the real mathematics is untouched.
+
 Five interactive exhibits:
 
 1. **What is an isogeny?** — Computes a real ℓ-isogeny with Vélu's formulas and
-   plots the point clouds of the domain and codomain curves.
-2. **The isogeny graph** — The real supersingular isogeny graph over `GF(419)`;
-   the button walks a genuine random path (a CSIDH group-action walk).
-3. **CSIDH key exchange** — Alice and Bob run the real protocol and land on the
-   same shared curve; agreement is checked at runtime.
-4. **The gate: breaking it** — Brute-forces a working secret for Alice's public
-   key, and explains the real Castryck–Decru break of SIDH.
+   **animates the map itself**: every domain point travels to its image `φ(P)`
+   (via a real Vélu point-evaluation), the kernel subgroup visibly collapses to
+   the identity, and a preserved addition `φ(P+Q) = φ(P)+φ(Q)` is verified live —
+   so "group homomorphism" is shown, not asserted.
+2. **The isogeny graph** — The real supersingular isogeny graph over `GF(419)`.
+   **Build a walk one edge at a time** with `+1 ℓ-isogeny` buttons and watch the
+   running exponent vector — which *is* a CSIDH secret — assemble; or walk a
+   genuine random path.
+3. **CSIDH key exchange** — Alice and Bob run the real protocol **as animated
+   walks on the same graph**: two paths leave `E₀`, then each re-walks from the
+   other's endpoint and both close on one shared vertex — the commuting diamond
+   made visible. Agreement is checked at runtime.
+4. **The gate: breaking it** — Shows the **key space as a grid** of candidate
+   `(5^i, 7^j)` vectors and lights up each cell as brute force tests it until one
+   matches — making the toy-scale caveat concrete — and explains the real
+   Castryck–Decru break of SIDH (explicitly *not* what the brute force does).
 5. **Lessons for PQC design** — Five principles drawn from the SIDH story.
 
 ## What Can Go Wrong
@@ -107,7 +122,9 @@ npm run build      # typecheck + production build to dist/
 ```
 
 The test suite verifies the mathematics that matters: the group law, the Hasse
-bound, supersingularity, that Vélu codomains stay supersingular, that the
+bound, supersingularity, that Vélu codomains stay supersingular, that Vélu image
+points land on the codomain and that φ is a genuine homomorphism (the property
+Exhibit 1 animates), that the whole kernel collapses to the identity, that the
 group action commutes, that Alice and Bob always agree, and that the brute-force
 recovery reproduces the public key.
 

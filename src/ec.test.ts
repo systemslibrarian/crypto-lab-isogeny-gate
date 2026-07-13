@@ -15,6 +15,7 @@ import {
   sqrtMod,
   modPow,
   veluCodomain,
+  veluEvaluate,
   randomPoint,
 } from './ec';
 
@@ -116,6 +117,63 @@ describe('Vélu codomain', () => {
       expect(countPoints(codomain)).toBe(420n);
       // codomain is a valid (non-singular) curve, so j is defined
       expect(() => jInvariant(codomain)).not.toThrow();
+    }
+  });
+});
+
+describe('Vélu evaluation (the map φ itself)', () => {
+  // Find a rational kernel generator of order ell on E0, plus the codomain.
+  function isogeny(ell: number) {
+    const cof = (E0.p + 1n) / BigInt(ell);
+    let K: ECPoint = null;
+    for (let t = 0; t < 400 && K === null; t++) {
+      const R = randomPoint(E0);
+      const cand = scalarMul(cof, R, E0);
+      if (cand !== null && scalarMul(BigInt(ell), cand, E0) === null) K = cand;
+    }
+    if (K === null) throw new Error('no kernel generator found');
+    return { K: K as NonNullable<ECPoint>, codomain: veluCodomain(E0, K as NonNullable<ECPoint>, ell) };
+  }
+
+  it('every image point lands ON the codomain curve', () => {
+    for (const ell of [5, 7]) {
+      const { K, codomain } = isogeny(ell);
+      for (const P of allPoints(E0)) {
+        const img = veluEvaluate(E0, K, ell, P);
+        expect(isOnCurve(img, codomain)).toBe(true);
+      }
+    }
+  });
+
+  it('the whole kernel collapses to the identity O', () => {
+    for (const ell of [5, 7]) {
+      const { K } = isogeny(ell);
+      let Q: ECPoint = null;
+      for (let i = 0; i < ell; i++) {
+        expect(veluEvaluate(E0, K, ell, Q)).toBeNull(); // O, K, 2K, … all → O
+        Q = pointAdd(Q, K, E0);
+      }
+    }
+  });
+
+  it('φ is a group homomorphism: φ(P+R) = φ(P) + φ(R)', () => {
+    for (const ell of [5, 7]) {
+      const { K, codomain } = isogeny(ell);
+      const pts = allPoints(E0).filter((P): P is NonNullable<ECPoint> => P !== null);
+      // Sample a handful of pairs (full O(n²) is unnecessary and slow).
+      for (let i = 0; i < pts.length; i += 17) {
+        for (let j = 0; j < pts.length; j += 23) {
+          const P = pts[i];
+          const R = pts[j];
+          const lhs = veluEvaluate(E0, K, ell, pointAdd(P, R, E0));
+          const rhs = pointAdd(
+            veluEvaluate(E0, K, ell, P),
+            veluEvaluate(E0, K, ell, R),
+            codomain
+          );
+          expect(lhs).toEqual(rhs);
+        }
+      }
     }
   });
 });

@@ -164,6 +164,101 @@ code {
 }
 
 /* ------------------------------------------------------------------ *
+ * Primer (plain-language orientation)
+ * ------------------------------------------------------------------ */
+
+.primer {
+  border-left: 4px solid var(--c-accent);
+}
+
+.primer h2 {
+  color: var(--c-accent-strong);
+}
+
+/* ------------------------------------------------------------------ *
+ * Inline glossary terms + popover
+ * ------------------------------------------------------------------ */
+
+/* A .gloss is a real <button> styled to read as a defined term inline. Dotted
+ * underline + the accent colour signal "click for a definition"; it keeps a
+ * visible focus ring from the global :focus-visible rule. */
+.gloss {
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: var(--c-accent-strong);
+  border-bottom: 1px dotted currentColor;
+  cursor: help;
+  border-radius: 0;
+}
+
+.gloss:hover {
+  background: none;
+  color: var(--c-accent);
+}
+
+.gloss::after {
+  content: '\00a0?';
+  font-size: 0.7em;
+  vertical-align: super;
+  opacity: 0.9;
+}
+
+.gloss-popover {
+  position: absolute;
+  z-index: 900;
+  max-width: min(32rem, 90vw);
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--c-accent);
+  background-color: var(--c-surface);
+  color: var(--c-text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.gloss-popover[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Control rows + inline swatches
+ * ------------------------------------------------------------------ */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-secondary {
+  border-color: var(--c-border);
+  color: var(--c-muted);
+}
+
+.btn-secondary:hover {
+  background-color: var(--c-border);
+  color: var(--c-text);
+}
+
+.swatch-inline {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  vertical-align: middle;
+  border: 1px solid var(--c-border);
+}
+
+.swatch-kernel {
+  background-color: var(--c-shared);
+}
+
+/* ------------------------------------------------------------------ *
  * Canvas
  * ------------------------------------------------------------------ */
 

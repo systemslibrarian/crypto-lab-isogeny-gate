@@ -107,6 +107,35 @@ export function groupAction(
   return result;
 }
 
+/**
+ * Like {@link groupAction}, but records the curve after every single ℓ-isogeny
+ * step, and which ℓ each step used. The last curve equals `groupAction(curve,
+ * secret)`. This turns a secret into an explicit *walk* — the sequence of
+ * vertices it visits — so the key exchange can be animated one edge at a time
+ * instead of appearing as an instant text result. Same real Vélu arithmetic.
+ *
+ * @returns `curves` — length (Σ secret[i]) + 1, starting at `curve`; and `ells`
+ *          — the ℓ used for each step (length one less than `curves`).
+ */
+export function groupActionPath(
+  curve: Curve,
+  secret: Secret,
+  params: CSIDHParams = PARAMS,
+  rand: () => number = Math.random
+): { curves: Curve[]; ells: number[] } {
+  const curves: Curve[] = [curve];
+  const ells: number[] = [];
+  let result = curve;
+  for (let i = 0; i < params.ells.length; i++) {
+    for (let n = 0; n < secret[i]; n++) {
+      result = applyIsogenyStep(result, params.ells[i], rand);
+      curves.push(result);
+      ells.push(params.ells[i]);
+    }
+  }
+  return { curves, ells };
+}
+
 /* ------------------------------------------------------------------ *
  * Key exchange
  * ------------------------------------------------------------------ */

@@ -298,3 +298,59 @@ export function veluCodomain(curve: Curve, K: NonNullable<ECPoint>, ell: number)
   }
   return { a: mod(a - 5n * v, p), b: mod(b - 7n * w, p), p };
 }
+
+/**
+ * Evaluate the ℓ-isogeny with kernel ⟨K⟩ at a point P — i.e. compute φ(P) on the
+ * codomain returned by {@link veluCodomain}. This is Vélu's *image* formula, the
+ * companion to the codomain formula above, and it is what makes the map (not just
+ * its target curve) visible:
+ *
+ *     φ(P) = ( xP + Σ_Q [ x(P+Q) − x(Q) ],  yP + Σ_Q [ y(P+Q) − y(Q) ] )
+ *
+ * where Q runs over the non-identity kernel points ⟨K⟩ \ {O}. Every point of the
+ * kernel maps to the identity O (represented as `null`) — that is precisely what
+ * "the kernel collapses to the identity" means, made concrete. And because φ is a
+ * group homomorphism, φ(P + R) = φ(P) + φ(R): addition is preserved across the map.
+ *
+ * @param curve  domain curve
+ * @param K      a generator of the kernel (a point of order ℓ)
+ * @param ell    the (odd, prime) kernel order
+ * @param P      the point to push through φ (or `null` for the identity)
+ * @returns      φ(P) on the codomain curve, or `null` if P is in the kernel
+ */
+export function veluEvaluate(
+  curve: Curve,
+  K: NonNullable<ECPoint>,
+  ell: number,
+  P: ECPoint
+): ECPoint {
+  if (P === null) return null;
+
+  // Build the kernel ⟨K⟩ once: O, K, 2K, …, (ℓ−1)K.
+  const kernel: ECPoint[] = [];
+  let Q: ECPoint = K;
+  for (let i = 1; i < ell; i++) {
+    if (Q === null) throw new Error('Kernel generator does not have order ℓ');
+    kernel.push(Q);
+    Q = pointAdd(Q, K, curve);
+  }
+
+  // If P itself is a kernel point (including O), φ(P) = O.
+  const { p } = curve;
+  for (const Qk of kernel) {
+    if (Qk !== null && Qk.x === P.x && Qk.y === P.y) return null;
+  }
+
+  let xImg = P.x;
+  let yImg = P.y;
+  for (const Qk of kernel) {
+    const PQ = pointAdd(P, Qk, curve);
+    if (PQ === null || Qk === null) {
+      // P + Q = O would mean P = −Q is in the kernel; already handled above.
+      throw new Error('veluEvaluate: unexpected identity in image sum');
+    }
+    xImg = mod(xImg + PQ.x - Qk.x, p);
+    yImg = mod(yImg + PQ.y - Qk.y, p);
+  }
+  return { x: xImg, y: yImg };
+}

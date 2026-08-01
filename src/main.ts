@@ -11,6 +11,7 @@ import {
   allPoints,
   countPoints,
   jInvariant,
+  isIsomorphic,
   isSupersingular,
   scalarMul,
   veluCodomain,
@@ -20,19 +21,25 @@ import {
 import {
   PARAMS,
   keyExchange,
-  bruteForceRecover,
+  bruteForceStep,
+  keySpaceSize,
+  candidateAt,
   groupAction,
   groupActionPath,
   type Secret,
 } from './csidh';
 import {
   buildIsogenyGraph,
+  describeGraphModel,
   drawIsogenyGraph,
   randomWalk,
   nodeIdForCurve,
   stepInGraph,
+  walkStart,
+  walkSequence,
   type GraphColors,
   type OverlayPath,
+  type WalkState,
 } from './graph';
 
 const app = document.getElementById('app');
@@ -120,25 +127,27 @@ app.innerHTML = `
     <section id="exhibit-2" aria-labelledby="h1-2">
       <h2 id="h1-2">2 · The isogeny graph</h2>
       <p>
-        The supersingular curves over <span class="m">GF(${PARAMS.p})</span> form
-        a graph: vertices are
-        <button type="button" class="gloss" data-term="j-invariant"><span class="m">j</span>-invariants</button>,
-        edges are ℓ-isogenies. It is an
+        Supersingular curves over <span class="m">GF(${PARAMS.p})</span> form a
+        graph: vertices are curves up to
+        <button type="button" class="gloss" data-term="j-invariant">isomorphism</button>
+        (each drawn with its <span class="m">j</span>-invariant), edges are
+        ℓ-isogenies. The real thing is an
         <button type="button" class="gloss" data-term="expander">expander</button>
         — short random walks mix rapidly — and finding the path between two given
         vertices is the hard problem isogeny cryptography rests on.
       </p>
       <p>
         <strong>Build a walk yourself.</strong> Each button below takes one real
-        ℓ-isogeny step and moves the current vertex by one edge. Your
+        ℓ-isogeny step <em>from the curve you are standing on</em>, and moves you
+        one edge. Your
         <button type="button" class="gloss" data-term="exponent-vector">exponent
         vector</button> — how many of each colour step you took — <em>is</em> a
         CSIDH secret. That is the whole idea of the next exhibit: a secret is just a
         walk.
       </p>
       <div class="canvas-wrap">
-        <canvas id="canvas-graph" width="640" height="440"
-          role="img" aria-label="The supersingular isogeny graph with the walk you build step by step highlighted"></canvas>
+        <canvas id="canvas-graph" width="640" height="520"
+          role="img" aria-label="The isogeny graph of every curve reachable from the base curve, with the walk you build step by step highlighted"></canvas>
       </div>
       <p class="legend" id="graph-legend"></p>
       <div class="controls">
@@ -148,6 +157,62 @@ app.innerHTML = `
         <button id="btn-random-walk" type="button" class="btn-secondary">Random walk</button>
       </div>
       <div id="graph-output" class="output" aria-live="polite"></div>
+
+      <h3 id="h2-order">Does the order matter?</h3>
+      <p>
+        Take your exponent vector and spend it twice from
+        <span class="m">E₀</span>: all the ${ELL_A}-steps first, then all the
+        ${ELL_B}-steps — and then the other way round. Two routes, and (for any
+        vector with some of each) different curves in between. They finish on the
+        same vertex. That is the
+        <button type="button" class="gloss" data-term="commutes">commutativity</button>
+        the next exhibit's key exchange is built on, and it is checked here rather
+        than asserted.
+      </p>
+      <div class="controls">
+        <button id="btn-commute" type="button">Replay my vector in both orders</button>
+      </div>
+      <div id="commute-output" class="output" aria-live="polite"></div>
+
+      <h3 id="h2-model">What this drawing is, and is not</h3>
+      <p class="model-note">
+        Every vertex and edge here is computed live, but the picture is a
+        <em>slice</em> of the supersingular world over
+        <span class="m">GF(${PARAMS.p})</span>, and the slicing is deliberate:
+      </p>
+      <ul class="model-note">
+        <li>
+          It draws exactly the curves reachable from <span class="m">E₀</span> by
+          ℓ ∈ {${ELL_A}, ${ELL_B}} isogenies — the orbit the CSIDH action moves
+          in — and nothing else. <span class="m">GF(${PARAMS.p})</span> has 36
+          supersingular curves up to isomorphism, carrying 18 distinct
+          <span class="m">j</span>-invariants; the ones not drawn are not
+          reachable from <span class="m">E₀</span> by any of ℓ ∈ {3, ${ELL_A}, ${ELL_B}}.
+          (Over the algebraic closure there are ⌊p/12⌋ + 2 = 36
+          supersingular <span class="m">j</span>-invariants; most live only in
+          <span class="m">GF(${PARAMS.p}²)</span>, where this demo never goes.)
+        </li>
+        <li>
+          A vertex is one curve up to <span class="m">GF(${PARAMS.p})</span>-isomorphism,
+          not one <span class="m">j</span>-invariant. A curve and its quadratic
+          twist share a <span class="m">j</span> but are different vertices; the
+          twin is marked with a prime (<span class="m">0</span> and
+          <span class="m">0′</span>). Merging them would be tidier and would make
+          the walk above stop commuting.
+        </li>
+        <li>
+          ℓ = 3 also divides <span class="m">p + 1</span> and is omitted. It
+          reaches no new vertex — its class already lies in the subgroup generated
+          by the other two — and leaving it out keeps a secret a pair of exponents,
+          which is what makes the key space in exhibit 4 a flat grid.
+        </li>
+        <li>
+          Edges are drawn undirected. The rational ℓ-isogeny has a direction; its
+          inverse is the ℓ-isogeny of the opposite class, which is drawn as the
+          same line.
+        </li>
+      </ul>
+      <div id="graph-model" class="output" aria-live="polite"></div>
     </section>
 
     <section id="exhibit-3" aria-labelledby="h1-3">
@@ -159,7 +224,9 @@ app.innerHTML = `
         <button type="button" class="gloss" data-term="group-action">class-group
         action</button>
         <button type="button" class="gloss" data-term="commutes"><strong>commutes</strong></button>,
-        they arrive at the very same curve — the shared secret. This is the genuine
+        they arrive at the very same curve — the shared secret. That is not an
+        article of faith here: exhibit 2 walks it both ways round for every
+        exponent vector in the key space and reports the tally. This is the genuine
         CSIDH construction, a present-day survivor of the isogeny world.
       </p>
       <p>
@@ -175,7 +242,7 @@ app.innerHTML = `
         commutativity.
       </p>
       <div class="canvas-wrap">
-        <canvas id="canvas-kex" width="640" height="440"
+        <canvas id="canvas-kex" width="640" height="520"
           role="img" aria-label="Alice's and Bob's key-exchange walks animated on the isogeny graph, converging on a single shared-secret vertex"></canvas>
       </div>
       <p class="legend" id="kex-legend"></p>
@@ -206,12 +273,23 @@ app.innerHTML = `
         <strong>What we can break here.</strong> Our parameters are tiny, so the
         whole key space is brute-forceable. The grid below is the entire key space —
         one cell per candidate exponent vector <span class="m">(${ELL_A}<sup>i</sup>, ${ELL_B}<sup>j</sup>)</span>.
-        Brute force lights up each cell as it is tested until one reproduces
-        Alice's public curve. This works <em>only</em> because the grid has just
+        Brute force tests each cell in turn, lighting it as it goes, until one
+        reproduces <em>the same Alice's</em> public curve as exhibit 3. This works
+        <em>only</em> because the grid has just
         <span class="m">${(PARAMS.expBound + 1) ** 2}</span> cells; real CSIDH's grid
         is astronomically large. Note this is <strong>not</strong> the
         Castryck–Decru attack — that broke SIDH with no brute force at all, by
         exploiting published torsion images (above).
+      </p>
+      <p>
+        One honest wrinkle: those
+        <span class="m">${(PARAMS.expBound + 1) ** 2}</span> cells are not
+        ${(PARAMS.expBound + 1) ** 2} different keys. The exponents run past the
+        order of the group they act in, so many vectors land on the same curve —
+        the panel below reports how many distinct curves there really are. The
+        attacker therefore recovers <em>a</em> vector that reproduces Alice's
+        public key, which is all they need; it is her literal secret only when
+        hers happens to be the first such vector in the enumeration.
       </p>
       <div class="canvas-wrap">
         <canvas id="canvas-keyspace" width="640" height="300"
@@ -296,6 +374,18 @@ function graphColors(): GraphColors {
   };
 }
 
+/**
+ * A curve as its actual Weierstrass equation, zero terms dropped — so what is
+ * printed is always what is computed. (This used to be a hard-coded string that
+ * disagreed with the curve in `csidh.ts`.)
+ */
+function fmtCurve(c: Curve): string {
+  const terms = ['x³'];
+  if (c.a !== 0n) terms.push(c.a === 1n ? 'x' : `${c.a}x`);
+  if (c.b !== 0n) terms.push(String(c.b));
+  return `y² = ${terms.join(' + ')}`;
+}
+
 /** Respect the user's reduced-motion preference: skip animation, show end state. */
 function prefersReducedMotion(): boolean {
   return (
@@ -338,7 +428,7 @@ function animate(
 
 const GLOSSARY: Record<string, string> = {
   'j-invariant':
-    'j-invariant: a fingerprint number identifying a curve up to isomorphism. Two curves with the same j are the same shape, so a graph vertex is really "all curves with this j".',
+    'j-invariant: a fingerprint number for a curve. Over an algebraically closed field it pins the curve down exactly, but over GF(p) two curves — a curve and its quadratic twist — can share a j and still not be isomorphic. They are drawn here as separate vertices with the same number, the twin marked with a prime (0 and 0′), because an isogeny sends them to different places.',
   'homomorphism':
     'group homomorphism: a map that respects addition — φ(P + Q) = φ(P) + φ(Q), and φ(identity) = identity. The isogeny is one, which is why the group structure survives the hop.',
   'preserved':
@@ -659,10 +749,10 @@ function runIsogenyAnimation() {
   const ss = isSupersingular(c);
   const kernelCount = scene.moves.filter((m) => m.inKernel).length;
   isogenyOutput.innerHTML = `
-    <div class="kv"><span>Domain</span><code>E₀: y² = x³ + x</code></div>
-    <div class="kv"><span>Codomain</span><code>E′: y² = x³ + ${c.a}x + ${c.b}</code></div>
+    <div class="kv"><span>Domain</span><code>E₀: ${fmtCurve(PARAMS.E0)}</code></div>
+    <div class="kv"><span>Codomain</span><code>E′: ${fmtCurve(c)}</code></div>
     <div class="kv"><span>j-invariants</span><code>j(E₀) = ${jInvariant(PARAMS.E0)}  →  j(E′) = ${jInvariant(c)}</code></div>
-    <div class="kv"><span>Kernel</span><code>${kernelCount} points (the ${scene.ell}-torsion subgroup) all collapse to O</code></div>
+    <div class="kv"><span>Kernel</span><code>⟨K⟩ has ${scene.ell} points — the ${kernelCount} affine ones drawn here, plus O — and all of them collapse to O</code></div>
     <div class="kv"><span>Homomorphism</span><code>φ(P+Q) = φ(P)+φ(Q), verified live for the labelled triple</code></div>
     <div class="kv"><span>Point count</span><code>#E₀ = ${countPoints(PARAMS.E0)},  #E′ = ${countPoints(c)}  (both = p+1)</code></div>
     <div class="kv"><span>Codomain supersingular?</span><code>${ss ? '✓ yes' : '✗ no'}</code></div>
@@ -691,12 +781,23 @@ btnReplayIsog.addEventListener('click', runIsogenyAnimation);
 
 const canvasGraph = document.getElementById('canvas-graph') as HTMLCanvasElement;
 const graphOutput = document.getElementById('graph-output') as HTMLDivElement;
+const commuteOutput = document.getElementById('commute-output') as HTMLDivElement;
 const graph = buildIsogenyGraph();
 
-// A walk the learner builds one edge at a time: node ids visited, and how many
-// of each ℓ were used (the running exponent vector = a CSIDH secret).
-let walkPath: number[] = [0];
+/**
+ * The walk the learner builds one edge at a time.
+ *
+ * Each state carries the curve they are *actually* standing on, not the vertex's
+ * stored representative — every further step is computed from that curve, which
+ * is why this walk lands exactly where the same exponent vector lands in exhibit
+ * 3, in either order. Vertex ids are used only to draw it.
+ */
+let walk: WalkState[] = [walkStart(graph)];
 const exponents: Record<number, number> = { [ELL_A]: 0, [ELL_B]: 0 };
+
+/** Anything drawn over the graph besides the learner's own walk. */
+let commuteOverlays: OverlayPath[] = [];
+let commuteMark: { id: number; color: string; label?: string } | null = null;
 
 document.getElementById('graph-legend')!.innerHTML = `
   <span class="swatch" style="background:var(--c-ell-a)"></span> ${ELL_A}-isogeny
@@ -705,31 +806,44 @@ document.getElementById('graph-legend')!.innerHTML = `
   &nbsp;&nbsp;<span class="swatch" style="background:var(--c-alice)"></span> your walk
 `;
 
+/** The vertex ids of a walk, for drawing. */
+function walkNodes(states: WalkState[]): number[] {
+  return states.map((s) => s.nodeId);
+}
+
 function renderGraph() {
+  const path = walkNodes(walk);
+  const marks: { id: number; color: string; label?: string }[] = [
+    { id: path[path.length - 1], color: cssVar('--c-alice'), label: 'here' },
+  ];
+  if (commuteMark) marks.push(commuteMark);
   drawIsogenyGraph(canvasGraph, graph, graphColors(), {
-    highlightPath: walkPath.length > 1 ? walkPath : undefined,
+    highlightPath: path.length > 1 && commuteOverlays.length === 0 ? path : undefined,
     startId: 0,
-    markNodes: [
-      { id: walkPath[walkPath.length - 1], color: cssVar('--c-alice'), label: 'here' },
-    ],
+    overlays: commuteOverlays,
+    markNodes: marks,
   });
 }
 
 function updateWalkOutput() {
-  const current = walkPath[walkPath.length - 1];
-  const js = walkPath.map((id) => graph.nodes[id].j).join(' → ');
+  const here = walk[walk.length - 1];
+  const labels = walk.map((s) => graph.nodes[s.nodeId].label).join(' → ');
   graphOutput.innerHTML = `
     <div class="kv"><span>Exponent vector</span><code>[${exponents[ELL_A]}, ${exponents[ELL_B]}] = ${ELL_A}^${exponents[ELL_A]} · ${ELL_B}^${exponents[ELL_B]}  ← this is a secret</code></div>
-    <div class="kv"><span>Current curve</span><code>j = ${graph.nodes[current].j}</code></div>
-    <div class="kv"><span>Walk (j-invariants)</span><code>${js}</code></div>
-    <div class="kv"><span>Steps taken</span><code>${walkPath.length - 1} ℓ-isogenies from E₀</code></div>`;
+    <div class="kv"><span>Current curve</span><code>${fmtCurve(here.curve)}   (j = ${jInvariant(here.curve)}, vertex ${graph.nodes[here.nodeId].label})</code></div>
+    <div class="kv"><span>Walk (vertices)</span><code>${labels}</code></div>
+    <div class="kv"><span>Steps taken</span><code>${walk.length - 1} ℓ-isogenies from E₀</code></div>`;
+}
+
+function clearCommuteOverlay() {
+  commuteOverlays = [];
+  commuteMark = null;
+  commuteOutput.innerHTML = '';
 }
 
 function takeStep(ell: number) {
-  const current = walkPath[walkPath.length - 1];
-  const next = stepInGraph(graph, current, ell);
-  if (next < 0) return; // should not happen for the fully-explored graph
-  walkPath.push(next);
+  clearCommuteOverlay();
+  walk.push(stepInGraph(graph, walk[walk.length - 1], ell));
   exponents[ell] += 1;
   renderGraph();
   updateWalkOutput();
@@ -739,7 +853,8 @@ document.getElementById('btn-step-a')!.addEventListener('click', () => takeStep(
 document.getElementById('btn-step-b')!.addEventListener('click', () => takeStep(ELL_B));
 
 document.getElementById('btn-reset-walk')!.addEventListener('click', () => {
-  walkPath = [0];
+  clearCommuteOverlay();
+  walk = [walkStart(graph)];
   exponents[ELL_A] = 0;
   exponents[ELL_B] = 0;
   renderGraph();
@@ -747,21 +862,160 @@ document.getElementById('btn-reset-walk')!.addEventListener('click', () => {
 });
 
 document.getElementById('btn-random-walk')!.addEventListener('click', () => {
-  // Rebuild the exponent vector honestly by counting which ℓ each edge used.
-  walkPath = randomWalk(graph, 0, 6);
+  clearCommuteOverlay();
+  // The walk reports which ℓ it used at each step, so the exponent vector is
+  // counted from the steps actually taken.
+  const rw = randomWalk(graph, walkStart(graph), 6);
+  walk = rw.states;
   exponents[ELL_A] = 0;
   exponents[ELL_B] = 0;
-  for (let i = 0; i + 1 < walkPath.length; i++) {
-    const a = walkPath[i];
-    const b = walkPath[i + 1];
-    const edge = graph.edges.find(
-      (e) => (e.from === a && e.to === b) || (e.from === b && e.to === a)
-    );
-    if (edge) exponents[edge.ell] += 1;
-  }
+  for (const ell of rw.ells) exponents[ell] += 1;
   renderGraph();
   updateWalkOutput();
 });
+
+/* ------------------------------------------------------------------ *
+ * Exhibit 2b — the same exponent vector, spent in two orders
+ *
+ * The claim "the class-group action commutes" is the load-bearing one on this
+ * page, so it gets an exhibit instead of a sentence: two different routes for
+ * one exponent vector, drawn together, finishing on one vertex.
+ * ------------------------------------------------------------------ */
+
+document.getElementById('btn-commute')!.addEventListener('click', () => {
+  const i = exponents[ELL_A];
+  const j = exponents[ELL_B];
+  if (i === 0 || j === 0) {
+    commuteOutput.innerHTML = `
+      <div class="kv"><span>Nothing to swap</span><code>Your vector is [${i}, ${j}]. Take at least one step of each colour — with a zero exponent both orders are literally the same walk.</code></div>`;
+    return;
+  }
+
+  const seqA = [...Array(i).fill(ELL_A), ...Array(j).fill(ELL_B)];
+  const seqB = [...Array(j).fill(ELL_B), ...Array(i).fill(ELL_A)];
+  const first = walkSequence(graph, walkStart(graph), seqA);
+  const second = walkSequence(graph, walkStart(graph), seqB);
+  const endA = first.states[first.states.length - 1];
+  const endB = second.states[second.states.length - 1];
+  const same = endA.nodeId === endB.nodeId;
+
+  // Draw both routes on the graph: solid for ℓ_A-first, dashed for ℓ_B-first.
+  commuteOverlays = [
+    { nodes: walkNodes(first.states), color: cssVar('--c-alice') },
+    { nodes: walkNodes(second.states), color: cssVar('--c-bob'), dashed: true },
+  ];
+  commuteMark = same
+    ? { id: endA.nodeId, color: cssVar('--c-shared'), label: 'both land here' }
+    : null;
+  renderGraph();
+
+  // How many vertices the two routes disagree on along the way — the point being
+  // that they genuinely take different paths, not the same one twice.
+  const midA = new Set(walkNodes(first.states).slice(1, -1));
+  const midB = walkNodes(second.states).slice(1, -1);
+  const divergent = midB.filter((id) => !midA.has(id)).length;
+
+  commuteOutput.innerHTML = `
+    <div class="kv"><span>Route 1</span><code>${ELL_A}^${i} then ${ELL_B}^${j}:  ${first.states.map((s) => graph.nodes[s.nodeId].label).join(' → ')}</code></div>
+    <div class="kv"><span>Route 2</span><code>${ELL_B}^${j} then ${ELL_A}^${i}:  ${second.states.map((s) => graph.nodes[s.nodeId].label).join(' → ')}</code></div>
+    <div class="kv"><span>Different in between?</span><code>${divergent > 0 ? `yes — ${divergent} intermediate ${divergent === 1 ? 'curve is' : 'curves are'} visited by only one of the two routes` : 'no — at this vector the two routes happen to coincide'}</code></div>
+    <div class="kv"><span>Route 1 ends on</span><code>${fmtCurve(endA.curve)}   (j = ${jInvariant(endA.curve)})</code></div>
+    <div class="kv"><span>Route 2 ends on</span><code>${fmtCurve(endB.curve)}   (j = ${jInvariant(endB.curve)})</code></div>
+    <div class="kv result ${same ? 'ok' : 'bad'}">
+      <span>Same curve?</span>
+      <code>${same ? `✓ yes — both routes finish on vertex ${graph.nodes[endA.nodeId].label}. Order does not matter.` : '✗ no — the action failed to commute (this should never happen)'}</code>
+    </div>`;
+});
+
+/* ------------------------------------------------------------------ *
+ * Exhibit 2c — live self-checks
+ *
+ * Claims about a drawing are cheap; this runs them. Every exponent vector in the
+ * key space is walked with the same buttons the learner presses, and compared
+ * against the group action and against itself with the ℓ order swapped. If the
+ * walk ever stopped agreeing, this panel would say so on the page rather than
+ * leaving the prose to assert something the exhibit contradicts.
+ * ------------------------------------------------------------------ */
+
+const KEY_SPACE = keySpaceSize();
+
+interface SelfCheck {
+  vertices: number;
+  distinctJs: number;
+  twinned: number;
+  allSupersingular: boolean;
+  vectors: number;
+  walkAgrees: number;
+  orderAgrees: number;
+  /** How many distinct curves those vectors actually reach. */
+  distinctCurves: number;
+}
+
+let selfCheckCache: SelfCheck | null = null;
+
+function runSelfCheck(): SelfCheck {
+  if (selfCheckCache) return selfCheckCache;
+  const model = describeGraphModel(graph);
+  const reached = new Set<number>();
+  let walkAgrees = 0;
+  let orderAgrees = 0;
+
+  for (let idx = 0; idx < KEY_SPACE; idx++) {
+    const [i, j] = candidateAt(idx);
+    const seqA = [...Array(i).fill(ELL_A), ...Array(j).fill(ELL_B)];
+    const seqB = [...Array(j).fill(ELL_B), ...Array(i).fill(ELL_A)];
+    const endA = walkSequence(graph, walkStart(graph), seqA).states.pop()!;
+    const endB = walkSequence(graph, walkStart(graph), seqB).states.pop()!;
+    const viaAction = nodeIdForCurve(graph, groupAction(PARAMS.E0, [i, j]));
+    if (endA.nodeId === viaAction) walkAgrees += 1;
+    if (endA.nodeId === endB.nodeId) orderAgrees += 1;
+    reached.add(viaAction);
+  }
+
+  selfCheckCache = {
+    vertices: model.vertices,
+    distinctJs: model.distinctJs,
+    twinned: model.twinned,
+    allSupersingular: model.allSupersingular,
+    vectors: KEY_SPACE,
+    walkAgrees,
+    orderAgrees,
+    // Vertices are isomorphism classes, so distinct vertices reached is exactly
+    // the number of distinct public keys the key space can produce.
+    distinctCurves: reached.size,
+  };
+  return selfCheckCache;
+}
+
+/** Shared with exhibit 4, which needs the same collapse numbers. */
+function keySpaceFacts(): { vectors: number; distinctCurves: number } {
+  const c = runSelfCheck();
+  return { vectors: c.vectors, distinctCurves: c.distinctCurves };
+}
+
+const graphModelOut = document.getElementById('graph-model') as HTMLDivElement;
+
+function renderSelfCheck() {
+  const c = runSelfCheck();
+  const ok = (pass: boolean) => (pass ? '✓' : '✗');
+  graphModelOut.innerHTML = `
+    <div class="kv"><span>Vertices drawn</span><code>${c.vertices} curves up to isomorphism, carrying ${c.distinctJs} distinct j-invariants — ${c.twinned} of the vertices come in twist pairs that share a j</code></div>
+    <div class="kv"><span>All supersingular?</span><code>${ok(c.allSupersingular)} #E = p + 1 for every vertex</code></div>
+    <div class="kv result ${c.walkAgrees === c.vectors ? 'ok' : 'bad'}">
+      <span>Walk = group action</span>
+      <code>${ok(c.walkAgrees === c.vectors)} ${c.walkAgrees}/${c.vectors} exponent vectors: pressing the buttons lands exactly where the secret does</code>
+    </div>
+    <div class="kv result ${c.orderAgrees === c.vectors ? 'ok' : 'bad'}">
+      <span>Order does not matter</span>
+      <code>${ok(c.orderAgrees === c.vectors)} ${c.orderAgrees}/${c.vectors} exponent vectors: ${ELL_A}s-then-${ELL_B}s ends on the same vertex as ${ELL_B}s-then-${ELL_A}s</code>
+    </div>
+    <div class="kv"><span>Key space collapse</span><code>the ${c.vectors} exponent vectors reach only ${c.distinctCurves} distinct curves — see exhibit 4</code></div>`;
+}
+
+// Deferred so the first paint is not blocked by a full sweep of the key space
+// in real isogeny arithmetic.
+graphModelOut.innerHTML = `<div class="kv"><span>Self-checks</span><code>running…</code></div>`;
+setTimeout(renderSelfCheck, 0);
 
 /* ------------------------------------------------------------------ *
  * Exhibit 3 — CSIDH key exchange
@@ -798,9 +1052,40 @@ function drawKex(overlays: OverlayPath[], sharedId: number | null) {
   });
 }
 
+/**
+ * The one key exchange this page is about.
+ *
+ * Exhibits 3 and 4 must show the *same* Alice: a brute force that attacks a
+ * different, freshly-generated Alice while calling her by the same name is not a
+ * demonstration of anything. Generating a new exchange (the button in exhibit 3)
+ * therefore invalidates whatever exhibit 4 has on screen, and says so.
+ */
+let exchange = keyExchange();
+
+function renderExchangeSummary(r: typeof exchange) {
+  sidhOutput.innerHTML = `
+    <div class="kv"><span>Alice secret</span><code>[${r.alice.secret.join(', ')}]  =  ${fmtSecret(r.alice.secret)}</code></div>
+    <div class="kv"><span>Bob secret</span><code>[${r.bob.secret.join(', ')}]  =  ${fmtSecret(r.bob.secret)}</code></div>
+    <div class="kv"><span>Alice public</span><code>j = ${jInvariant(r.alice.publicCurve)}  (where her walk from E₀ ends)</code></div>
+    <div class="kv"><span>Bob public</span><code>j = ${jInvariant(r.bob.publicCurve)}  (where his walk from E₀ ends)</code></div>
+    <div class="kv"><span>Alice re-walks</span><code>her secret from Bob's curve → j = ${jInvariant(r.aliceShared)}</code></div>
+    <div class="kv"><span>Bob re-walks</span><code>his secret from Alice's curve → j = ${jInvariant(r.bobShared)}</code></div>
+    <div class="kv result ${r.agree ? 'ok' : 'bad'}">
+      <span>Shared secret</span>
+      <code>${r.agree ? `✓ both parties agree — the diamonds close on the same vertex:  j = ${r.sharedInvariant}` : '✗ disagreement (should never happen)'}</code>
+    </div>
+  `;
+}
+
+// Show it immediately, so the numbers exhibit 4 attacks are on screen before the
+// attack runs, whichever button the reader presses first.
+renderExchangeSummary(exchange);
+
 document.getElementById('btn-run-sidh')!.addEventListener('click', () => {
   cancelKexAnim();
-  const r = keyExchange();
+  exchange = keyExchange();
+  const r = exchange;
+  resetAttackPanel();
 
   // Real node paths for all four walks (two outbound, two re-walks).
   const alicePub = nodePathFor(PARAMS.E0, r.alice.secret);
@@ -850,18 +1135,7 @@ document.getElementById('btn-run-sidh')!.addEventListener('click', () => {
     });
   });
 
-  sidhOutput.innerHTML = `
-    <div class="kv"><span>Alice secret</span><code>[${r.alice.secret.join(', ')}]  =  ${fmtSecret(r.alice.secret)}</code></div>
-    <div class="kv"><span>Bob secret</span><code>[${r.bob.secret.join(', ')}]  =  ${fmtSecret(r.bob.secret)}</code></div>
-    <div class="kv"><span>Alice public</span><code>j = ${jInvariant(r.alice.publicCurve)}  (where her walk from E₀ ends)</code></div>
-    <div class="kv"><span>Bob public</span><code>j = ${jInvariant(r.bob.publicCurve)}  (where his walk from E₀ ends)</code></div>
-    <div class="kv"><span>Alice re-walks</span><code>her secret from Bob's curve → j = ${jInvariant(r.aliceShared)}</code></div>
-    <div class="kv"><span>Bob re-walks</span><code>his secret from Alice's curve → j = ${jInvariant(r.bobShared)}</code></div>
-    <div class="kv result ${r.agree ? 'ok' : 'bad'}">
-      <span>Shared secret</span>
-      <code>${r.agree ? `✓ both parties agree — the diamonds close on the same vertex:  j = ${r.sharedInvariant}` : '✗ disagreement (should never happen)'}</code>
-    </div>
-  `;
+  renderExchangeSummary(r);
 });
 
 /* ------------------------------------------------------------------ *
@@ -947,45 +1221,91 @@ function drawKeyspace(tested: number, matchIdx: number | null) {
   ctx.font = '12px ui-monospace, monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  const done = matchIdx !== null && tested > matchIdx;
+  const done = matchIdx !== null;
   ctx.fillText(
-    done ? `${RANGE * RANGE}-cell key space — match found at cell ${matchIdx + 1}` : `searching ${RANGE * RANGE}-cell key space… ${tested} tested`,
+    done
+      ? `${KEY_SPACE}-cell key space — match found at cell ${matchIdx + 1}`
+      : tested === 0
+        ? `${KEY_SPACE}-cell key space — not searched yet`
+        : `searching ${KEY_SPACE}-cell key space… ${tested} tested`,
     ox,
     4
   );
+}
+
+/** Clear the attack panel — used when the exchange it referred to is replaced. */
+function resetAttackPanel() {
+  cancelAttackAnim();
+  cancelAttackAnim = () => {};
+  attackOutput.innerHTML = '';
+  drawKeyspace(0, null);
 }
 
 drawKeyspace(0, null);
 
 document.getElementById('btn-run-attack')!.addEventListener('click', () => {
   cancelAttackAnim();
-  const r = keyExchange();
-  const rec = bruteForceRecover(r.alice.publicCurve, r.alice.secret);
-  const reproduced = groupAction(PARAMS.E0, rec.recovered);
-  // The matching index in the same enumeration bruteForceRecover uses.
-  const matchIdx = rec.recovered[0] + rec.recovered[1] * RANGE;
+  // The same Alice as exhibit 3 — attacking a freshly-generated one would put a
+  // different "Alice's public key" under the same name two panels apart.
+  const target = exchange.alice.publicCurve;
+  const original = exchange.alice.secret;
+  const targetJ = jInvariant(target);
 
-  attackOutput.innerHTML = `
-    <div class="kv"><span>Target</span><code>Alice's public key  j = ${jInvariant(r.alice.publicCurve)}</code></div>
-    <div class="kv"><span>Key space</span><code>${rec.keySpace} candidate secret vectors</code></div>
-    <div class="kv"><span>Search</span><code>tested ${rec.tested} before a match</code></div>
-    <div class="kv"><span>Recovered secret</span><code>[${rec.recovered.join(', ')}]  =  ${fmtSecret(rec.recovered)}</code></div>
-    <div class="kv"><span>Reproduces public key?</span><code>${jInvariant(reproduced) === jInvariant(r.alice.publicCurve) ? '✓ yes' : '✗ no'}</code></div>
-    <div class="kv result bad">
-      <span>Verdict</span>
-      <code>✓ toy broken — ${rec.matchesOriginal ? "Alice's exact secret recovered" : 'an equivalent working secret recovered'}</code>
-    </div>
-  `;
+  // Drive the display from the search itself: one candidate per frame, panel
+  // written when the match is actually found. Nothing here is pre-computed.
+  let idx = 0;
+  let found: { candidate: Secret; idx: number } | null = null;
 
-  // Animate the search lighting up cells up to the match.
-  cancelAttackAnim = animate(
-    Math.min(1800, 40 * rec.tested + 200),
-    (t) => {
-      const lit = Math.round(t * rec.tested);
-      drawKeyspace(lit, lit >= rec.tested ? matchIdx : null);
-    },
-    () => drawKeyspace(rec.tested, matchIdx)
-  );
+  const finish = () => {
+    if (!found) {
+      attackOutput.innerHTML = `
+        <div class="kv result bad"><span>Search</span><code>✗ no vector reproduced the public key (should never happen)</code></div>`;
+      return;
+    }
+    const matchIdx = found.idx;
+    const recovered = found.candidate;
+    const reproduced = groupAction(PARAMS.E0, recovered);
+    const matchesOriginal = original.every((e, i) => e === recovered[i]);
+    const { vectors, distinctCurves } = keySpaceFacts();
+    const exactOdds = Math.round((distinctCurves / vectors) * 100);
+    drawKeyspace(matchIdx + 1, matchIdx);
+    attackOutput.innerHTML = `
+      <div class="kv"><span>Target</span><code>Alice's public key from exhibit 3  —  j = ${targetJ}</code></div>
+      <div class="kv"><span>Key space</span><code>${vectors} candidate exponent vectors — but they reach only ${distinctCurves} distinct curves, so different vectors are the same key</code></div>
+      <div class="kv"><span>Search</span><code>tested ${matchIdx + 1} before a match</code></div>
+      <div class="kv"><span>Recovered secret</span><code>[${recovered.join(', ')}]  =  ${fmtSecret(recovered)}</code></div>
+      <div class="kv"><span>Alice's actual secret</span><code>[${original.join(', ')}]${matchesOriginal ? '  — the search returned exactly this' : `  — the search returned an equivalent vector instead. It reports the first vector reaching the curve, which is Alice's literal secret ${distinctCurves} times in ${vectors} (about ${exactOdds}%).`}</code></div>
+      <div class="kv"><span>Reproduces public key?</span><code>${isIsomorphic(reproduced, target) ? '✓ yes' : '✗ no'}</code></div>
+      <div class="kv result bad">
+        <span>Verdict</span>
+        <code>✓ toy broken — ${matchesOriginal ? "Alice's exact secret recovered" : 'an equivalent working secret recovered, which derives the shared curve just as well'}</code>
+      </div>
+    `;
+  };
+
+  const testNext = (): boolean => {
+    if (found || idx >= KEY_SPACE) return true;
+    const { candidate, match } = bruteForceStep(target, idx);
+    if (match) found = { candidate, idx };
+    idx++;
+    return found !== null || idx >= KEY_SPACE;
+  };
+
+  if (prefersReducedMotion()) {
+    let complete = false;
+    while (!complete) complete = testNext();
+    finish();
+  } else {
+    let raf = 0;
+    const tick = () => {
+      const complete = testNext();
+      drawKeyspace(idx, found ? found.idx : null);
+      if (complete) finish();
+      else raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    cancelAttackAnim = () => cancelAnimationFrame(raf);
+  }
 });
 
 /* ------------------------------------------------------------------ *

@@ -60,16 +60,57 @@ describe('UI wiring', () => {
     expect(out).toContain('2 ℓ-isogenies');
   });
 
+  it('exhibit 2 spends one exponent vector in both orders and lands once', () => {
+    document.getElementById('btn-reset-walk')!.dispatchEvent(new Event('click'));
+    for (let i = 0; i < 3; i++) {
+      document.getElementById('btn-step-a')!.dispatchEvent(new Event('click'));
+    }
+    document.getElementById('btn-step-b')!.dispatchEvent(new Event('click'));
+    document.getElementById('btn-commute')!.dispatchEvent(new Event('click'));
+    const out = document.getElementById('commute-output')!.textContent ?? '';
+    expect(out).toContain('Order does not matter');
+  });
+
+  it('exhibit 2 self-checks the walk against the group action', async () => {
+    const out = await settle('graph-model', 'Walk = group action');
+    // Both tallies must be complete, not merely present.
+    expect(out).toContain('64/64 exponent vectors');
+    expect(out).toContain('Order does not matter');
+    expect(out).not.toContain('✗');
+  });
+
   it('exhibit 3 reaches an agreed shared secret', () => {
     document.getElementById('btn-run-sidh')!.dispatchEvent(new Event('click'));
     const out = document.getElementById('sidh-output')!.textContent ?? '';
     expect(out).toContain('both parties agree');
   });
 
-  it('exhibit 4 brute-forces a working secret', () => {
+  it('exhibit 4 brute-forces the same Alice exhibit 3 shows', async () => {
+    const kex = (document.getElementById('sidh-output')!.textContent ?? '').replace(/\s+/g, ' ');
+
     document.getElementById('btn-run-attack')!.dispatchEvent(new Event('click'));
-    const out = document.getElementById('attack-output')!.textContent ?? '';
-    expect(out).toContain('toy broken');
+    // The search runs one candidate per frame, so the panel appears when the
+    // work is done rather than before it starts.
+    const out = (await settle('attack-output', 'toy broken')).replace(/\s+/g, ' ');
     expect(out).toContain('✓ yes'); // reproduces public key
+
+    // The target is the exchange on screen above, not a fresh one under the
+    // same name: the j it attacks must be the j exhibit 3 published.
+    const target = /j = (\d+)/.exec(out);
+    expect(target).not.toBeNull();
+    expect(kex).toContain(`j = ${target![1]} `);
   });
 });
+
+/** Poll an output element until it says something, or give up. */
+async function settle(id: string, needle: string, timeoutMs = 8000): Promise<string> {
+  const started = Date.now();
+  for (;;) {
+    const text = document.getElementById(id)!.textContent ?? '';
+    if (text.includes(needle)) return text;
+    if (Date.now() - started > timeoutMs) {
+      throw new Error(`#${id} never contained "${needle}" (last: ${text.slice(0, 200)})`);
+    }
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}

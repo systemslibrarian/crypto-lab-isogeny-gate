@@ -60,18 +60,29 @@ Five interactive exhibits:
    (via a real Vélu point-evaluation), the kernel subgroup visibly collapses to
    the identity, and a preserved addition `φ(P+Q) = φ(P)+φ(Q)` is verified live —
    so "group homomorphism" is shown, not asserted.
-2. **The isogeny graph** — The real supersingular isogeny graph over `GF(419)`.
-   **Build a walk one edge at a time** with `+1 ℓ-isogeny` buttons and watch the
-   running exponent vector — which *is* a CSIDH secret — assemble; or walk a
-   genuine random path.
+2. **The isogeny graph** — Every curve reachable from `E₀` over `GF(419)` by the
+   ℓ-isogenies this demo uses, one vertex per curve *up to isomorphism* (a curve
+   and its quadratic twist share a `j` and are separate vertices, the twin
+   primed). **Build a walk one edge at a time** with `+1 ℓ-isogeny` buttons —
+   every step is taken from the curve you are actually standing on — and watch
+   the running exponent vector, which *is* a CSIDH secret, assemble; or walk a
+   genuine random path. Then **spend that vector in both ℓ orders** and watch two
+   different routes finish on one vertex: commutativity demonstrated, not
+   asserted. A model note states what the drawing leaves out, and live
+   self-checks re-run the walk against the group action for every vector in the
+   key space.
 3. **CSIDH key exchange** — Alice and Bob run the real protocol **as animated
    walks on the same graph**: two paths leave `E₀`, then each re-walks from the
    other's endpoint and both close on one shared vertex — the commuting diamond
    made visible. Agreement is checked at runtime.
 4. **The gate: breaking it** — Shows the **key space as a grid** of candidate
-   `(5^i, 7^j)` vectors and lights up each cell as brute force tests it until one
-   matches — making the toy-scale caveat concrete — and explains the real
-   Castryck–Decru break of SIDH (explicitly *not* what the brute force does).
+   `(5^i, 7^j)` vectors and lights each cell as the search actually tests it —
+   the display is driven by the search, not replayed after it — until one
+   reproduces **the same Alice's** public key as exhibit 3. It also reports the
+   collapse: 64 exponent vectors reach only 27 distinct curves, so the attacker
+   usually recovers an equivalent secret rather than Alice's literal one. And it
+   explains the real Castryck–Decru break of SIDH (explicitly *not* what the
+   brute force does).
 5. **Lessons for PQC design** — Five principles drawn from the SIDH story.
 
 ## What Can Go Wrong
@@ -129,6 +140,14 @@ points land on the codomain and that φ is a genuine homomorphism (the property
 Exhibit 1 animates), that the whole kernel collapses to the identity, that the
 group action commutes, that Alice and Bob always agree, and that the brute-force
 recovery reproduces the public key.
+
+It also pins the claims the UI makes about itself: that the walk built with the
+`+1 ℓ-isogeny` buttons agrees with the group action for all 64 exponent vectors
+and lands on the same vertex in either ℓ order; that graph vertices are
+isomorphism classes rather than j-invariants; and the numbers in the model note —
+27 vertices carrying 14 distinct j-invariants, out of the 36 supersingular
+classes and 18 supersingular j-invariants that exist over `GF(419)`, with ℓ = 3
+reaching nothing the drawn ℓ cannot.
 
 ---
 

@@ -37,6 +37,24 @@ test.describe('Isogeny Gate — real browser', () => {
     await page.locator('#exhibit-2').screenshot({ path: `${SHOTS}/exhibit2-graph.png` });
   });
 
+  test('exhibit 2 lands on one vertex whichever order the steps are taken', async ({
+    page,
+  }) => {
+    await page.locator('#btn-reset-walk').click();
+    await page.locator('#btn-step-a').click();
+    await page.locator('#btn-step-a').click();
+    await page.locator('#btn-step-b').click();
+    await page.locator('#btn-commute').click();
+    await expect(page.locator('#commute-output')).toContainText('Order does not matter');
+    await page.locator('#exhibit-2').screenshot({ path: `${SHOTS}/exhibit2-commute.png` });
+  });
+
+  test('exhibit 2 self-checks the walk against the group action', async ({ page }) => {
+    const out = page.locator('#graph-model');
+    await expect(out).toContainText('64/64 exponent vectors');
+    await expect(out).not.toContainText('✗');
+  });
+
   test('exhibit 3 reaches an agreed shared secret', async ({ page }) => {
     await page.locator('#btn-run-sidh').click();
     await expect(page.locator('#sidh-output')).toContainText('both parties agree');

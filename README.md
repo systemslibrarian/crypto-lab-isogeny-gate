@@ -13,9 +13,11 @@ whose security rests on the hardness of finding a path between two curves in a
 supersingular isogeny graph.
 
 This demo implements a **toy CSIDH** — a genuine commutative group-action key
-exchange — and uses it to tell the cautionary tale of **SIDH**, the related
-scheme that was a NIST candidate for a decade until the **Castryck–Decru attack**
-(August 2022) broke it in minutes.
+exchange — and uses it to tell the cautionary tale of **SIDH**: proposed by Jao
+and De Feo at PQCrypto 2011, submitted to NIST as **SIKE** for round 1 in
+November 2017, and broken in minutes by the **Castryck–Decru attack** in July
+2022. The underlying scheme had stood for eleven years; its NIST candidacy lasted
+under five.
 
 ### What is real here, and what is not
 
@@ -75,13 +77,13 @@ Five interactive exhibits:
 ## What Can Go Wrong
 
 - **Auxiliary data can be the weakness.** SIDH published the images of torsion points under each party's secret isogeny; those images looked harmless for a decade and were exactly what the Castryck–Decru attack used to recover the secret.
-- **Long scrutiny is not proof of security.** SIDH/SIKE survived ten years of analysis and multiple NIST rounds before a fast *classical* break ended it.
+- **Long scrutiny is not proof of security.** SIDH survived eleven years of analysis (2011–2022), and SIKE four NIST rounds (2017–2022), before a fast *classical* break ended it.
 - **Toy parameters offer no security.** This demo's `GF(419)` field and tiny key space are for visibility only and are exhaustively breakable.
 - **CSIDH is subtle in its own right.** Concrete CSIDH security levels and constant-time implementations of the group action remain actively studied; "the SIDH attack does not apply" is not the same as "fast and safe at scale."
 
 ## Real-World Usage
 
-- **SIDH/SIKE** was a NIST PQC alternate KEM candidate until the 2022 Castryck–Decru attack; it is no longer recommended for any use.
+- **SIDH/SIKE** was a NIST PQC KEM candidate from round 1 (November 2017), still standing as a round-4 alternate when the July 2022 Castryck–Decru attack ended it; it is no longer recommended for any use.
 - **CSIDH** is studied as a compact, commutative isogeny key exchange with very small keys, of ongoing academic interest.
 - **SQIsign** is an isogeny-based signature submitted to NIST's additional-signatures process, notable for very small signatures.
 - **Isogeny machinery** — including the higher-dimensional isogeny techniques behind the SIDH break — is now an active research tool across cryptography and number theory.

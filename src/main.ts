@@ -191,15 +191,16 @@ app.innerHTML = `
         <strong>What broke SIDH.</strong> SIDH (a different scheme) had each party
         publish not just their curve but the
         <button type="button" class="gloss" data-term="torsion">images of torsion
-        points</button> under their secret isogeny. In August 2022, Castryck and
+        points</button> under their secret isogeny. In July 2022, Castryck and
         Decru showed those images over-determine the secret: glued into a
         higher-dimensional
         <button type="button" class="gloss" data-term="abelian-surface">abelian
         surface</button> (via
         <button type="button" class="gloss" data-term="kani">Kani's lemma</button>),
-        they let an attacker reconstruct the secret isogeny in <em>minutes</em>. A
-        decade-old candidate fell. CSIDH publishes only a curve — no torsion images
-        — so that attack does not apply to it.
+        they let an attacker reconstruct the secret isogeny in <em>minutes</em>. An
+        eleven-year-old scheme — a NIST candidate (as SIKE) for under five of those
+        years — fell. CSIDH publishes only a curve — no torsion images — so that
+        attack does not apply to it.
       </p>
       <p>
         <strong>What we can break here.</strong> Our parameters are tiny, so the
@@ -229,7 +230,7 @@ app.innerHTML = `
         <li><strong>Beautiful math is not secure math.</strong> Isogenies are elegant; elegance and long scrutiny did not prevent the break.</li>
         <li><strong>Different problems, different fates.</strong> The pure path-finding problem (CSIDH, SQIsign) still stands; only SIDH's extra structure broke.</li>
         <li><strong>Attacks become tools.</strong> The Castryck–Decru machinery now informs constructive isogeny work, including SQIsign.</li>
-        <li><strong>Diversity is essential.</strong> NIST standardised lattice, hash, and code families so that no single broken foundation is catastrophic.</li>
+        <li><strong>Diversity is essential.</strong> NIST has <em>finalised</em> lattice-based (ML-KEM, FIPS&nbsp;203; ML-DSA, FIPS&nbsp;204) and hash-based (SLH-DSA, FIPS&nbsp;205) standards, and in March 2025 <em>selected</em> the code-based HQC as a fifth algorithm — that standard is still in progress, not yet published. Spreading across foundations means no single broken foundation is catastrophic.</li>
       </ul>
       <p class="disclaimer">
         <strong>Not for production.</strong> Parameters here (<span class="m">p = ${PARAMS.p}</span>)

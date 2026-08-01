@@ -44,9 +44,18 @@ export interface CSIDHParams {
 }
 
 /**
- * Toy parameters. p + 1 = 420 = 2²·3·5·7. We use ℓ ∈ {5, 7}: the 3-isogeny
- * direction is principal here (it acts trivially on E₀'s class), so it would be
- * a "dead" generator and is omitted.
+ * Toy parameters. p + 1 = 420 = 2²·3·5·7, so ℓ ∈ {3, 5, 7} are all available as
+ * isogeny degrees. We use ℓ ∈ {5, 7} and omit ℓ = 3 for a *rendering* reason,
+ * not a mathematical one.
+ *
+ * The rational 3-isogeny from E₀ lands on y² = x³ + 392, which has the same
+ * j-invariant (j = 0) as E₀ but is *not* GF(p)-isomorphic to it — it is E₀'s
+ * quadratic twist, and {@link isIsomorphic}(E₀, ·) returns false. So the
+ * 3-direction is a genuine, non-identity element of the class-group action; it
+ * is emphatically not a principal/"dead" generator. It is simply invisible at
+ * the granularity this demo draws at: `graph.ts` keys vertices by j-invariant
+ * (a curve and its twist share a vertex), so an ℓ = 3 edge out of E₀ would
+ * render as a self-loop and teach nothing. Hence it is left out.
  */
 export const PARAMS: CSIDHParams = {
   p: 419n,

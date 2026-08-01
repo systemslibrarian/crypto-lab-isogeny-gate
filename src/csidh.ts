@@ -4,7 +4,7 @@
  * This is genuine isogeny cryptography, not a mock-up:
  *
  *   • Curves are real supersingular elliptic curves over GF(p) with p = 419.
- *   • E₀: y² = x³ + x is supersingular because p ≡ 3 (mod 4); #E₀ = p + 1 = 420.
+ *   • E₀: y² = x³ + 1 is supersingular because p ≡ 2 (mod 3); #E₀ = p + 1 = 420.
  *   • For each small odd prime ℓ | (p + 1) the curve has a unique GF(p)-rational
  *     subgroup of order ℓ (the +1 eigenspace of Frobenius). Quotienting by it with
  *     Vélu's formulas gives a well-defined ℓ-isogeny — one fixed "direction" of the
@@ -35,7 +35,7 @@ import {
 export interface CSIDHParams {
   /** Prime field characteristic. */
   p: bigint;
-  /** Starting supersingular curve E₀: y² = x³ + x. */
+  /** Starting supersingular curve E₀: y² = x³ + 1. */
   E0: Curve;
   /** Small odd primes ℓ used as isogeny degrees (each divides p + 1). */
   ells: number[];

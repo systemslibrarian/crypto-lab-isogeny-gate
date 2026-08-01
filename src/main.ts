@@ -189,8 +189,10 @@ app.innerHTML = `
           <span class="m">j</span>-invariants; the ones not drawn are not
           reachable from <span class="m">E₀</span> by any of ℓ ∈ {3, ${ELL_A}, ${ELL_B}}.
           (Over the algebraic closure there are ⌊p/12⌋ + 2 = 36
-          supersingular <span class="m">j</span>-invariants; most live only in
-          <span class="m">GF(${PARAMS.p}²)</span>, where this demo never goes.)
+          supersingular <span class="m">j</span>-invariants; 18 of those are
+          <span class="m">GF(${PARAMS.p})</span>-rational — the ones above — and the
+          other half live only in <span class="m">GF(${PARAMS.p}²)</span>, where this
+          demo never goes.)
         </li>
         <li>
           A vertex is one curve up to <span class="m">GF(${PARAMS.p})</span>-isomorphism,
@@ -386,6 +388,11 @@ function fmtCurve(c: Curve): string {
   return `y² = ${terms.join(' + ')}`;
 }
 
+/** A point as (x, y), or O for the identity. */
+function fmtPoint(P: ECPoint): string {
+  return P === null ? 'O' : `(${P.x}, ${P.y})`;
+}
+
 /** Respect the user's reduced-motion preference: skip animation, show end state. */
 function prefersReducedMotion(): boolean {
   return (
@@ -517,6 +524,25 @@ interface IsogenyScene {
   P: NonNullable<ECPoint>;
   Q: NonNullable<ECPoint>;
   PQ: NonNullable<ECPoint>;
+  /** φ(P), φ(Q), φ(P+Q) on the codomain — the points the labels point at. */
+  imgP: ECPoint;
+  imgQ: ECPoint;
+  imgPQ: ECPoint;
+  /** φ(P) + φ(Q), added on the CODOMAIN curve. */
+  sumOfImages: ECPoint;
+  /**
+   * Whether φ(P+Q) really equals φ(P)+φ(Q) for this triple — compared here, not
+   * assumed. The panel prints whatever this says; if the Vélu image formula were
+   * wrong the page would report the failure instead of claiming a verification
+   * that never happened.
+   */
+  homomorphismHolds: boolean;
+}
+
+/** Are two codomain points equal (both identity, or same affine coordinates)? */
+function samePoint(A: ECPoint, B: ECPoint): boolean {
+  if (A === null || B === null) return A === B;
+  return A.x === B.x && A.y === B.y;
 }
 
 let scene: IsogenyScene | null = null;
@@ -592,7 +618,28 @@ function buildScene(): IsogenyScene {
       }
     }
   }
-  return { kernelGen: K, codomain, ell, moves, P, Q, PQ: PQ as NonNullable<ECPoint> };
+  // Push the triple through φ and ACTUALLY CHECK the homomorphism property:
+  // add φ(P) and φ(Q) on the codomain and compare with φ(P+Q). The panel reports
+  // the comparison, so "verified live" means a comparison really happened.
+  const imgP = veluEvaluate(PARAMS.E0, K, ell, P);
+  const imgQ = veluEvaluate(PARAMS.E0, K, ell, Q);
+  const imgPQ = veluEvaluate(PARAMS.E0, K, ell, PQ);
+  const sumOfImages = pointAdd(imgP, imgQ, codomain);
+
+  return {
+    kernelGen: K,
+    codomain,
+    ell,
+    moves,
+    P,
+    Q,
+    PQ: PQ as NonNullable<ECPoint>,
+    imgP,
+    imgQ,
+    imgPQ,
+    sumOfImages,
+    homomorphismHolds: samePoint(imgPQ, sumOfImages),
+  };
 }
 
 // Geometry helpers shared by the render.
@@ -701,13 +748,17 @@ function renderIsogeny() {
   if (labelAlpha > 0) {
     ctx.save();
     ctx.globalAlpha = labelAlpha;
-    const triples: [NonNullable<ECPoint>, string][] = [
-      [scene.P, 'φ(P)'],
-      [scene.Q, 'φ(Q)'],
-      [scene.PQ, 'φ(P+Q) = φ(P)+φ(Q)'],
+    // The third label only claims the equality when the comparison in
+    // buildScene() actually found it; otherwise it names just what is drawn.
+    const triples: [ECPoint, string][] = [
+      [scene.imgP, 'φ(P)'],
+      [scene.imgQ, 'φ(Q)'],
+      [
+        scene.imgPQ,
+        scene.homomorphismHolds ? 'φ(P+Q) = φ(P)+φ(Q) ✓' : 'φ(P+Q) ≠ φ(P)+φ(Q) ✗',
+      ],
     ];
-    for (const [pt, lbl] of triples) {
-      const img = veluEvaluate(PARAMS.E0, scene.kernelGen, scene.ell, pt);
+    for (const [img, lbl] of triples) {
       if (!img) continue;
       const q = mapToBox(img, right);
       ctx.fillStyle = cssVar('--c-accent-strong');
@@ -747,13 +798,37 @@ function runIsogenyAnimation() {
   scene = buildScene();
   const c = scene.codomain;
   const ss = isSupersingular(c);
-  const kernelCount = scene.moves.filter((m) => m.inKernel).length;
+  const kernelMoves = scene.moves.filter((m) => m.inKernel);
+  const kernelCount = kernelMoves.length;
+  // "The kernel collapses to O" is checked, not asserted: every kernel point's
+  // image really is the identity (veluEvaluate returns null), and O itself maps
+  // to O. Counted from the images the animation actually draws.
+  const collapsed = kernelMoves.filter((m) => m.img === null).length;
+  const kernelCollapses =
+    collapsed === kernelCount &&
+    veluEvaluate(PARAMS.E0, scene.kernelGen, scene.ell, null) === null;
   isogenyOutput.innerHTML = `
     <div class="kv"><span>Domain</span><code>E₀: ${fmtCurve(PARAMS.E0)}</code></div>
     <div class="kv"><span>Codomain</span><code>E′: ${fmtCurve(c)}</code></div>
     <div class="kv"><span>j-invariants</span><code>j(E₀) = ${jInvariant(PARAMS.E0)}  →  j(E′) = ${jInvariant(c)}</code></div>
-    <div class="kv"><span>Kernel</span><code>⟨K⟩ has ${scene.ell} points — the ${kernelCount} affine ones drawn here, plus O — and all of them collapse to O</code></div>
-    <div class="kv"><span>Homomorphism</span><code>φ(P+Q) = φ(P)+φ(Q), verified live for the labelled triple</code></div>
+    <div class="kv result ${kernelCollapses ? 'ok' : 'bad'}">
+      <span>Kernel</span>
+      <code>${
+        kernelCollapses
+          ? `✓ ⟨K⟩ has ${scene.ell} points — the ${kernelCount} affine ones drawn here, plus O — and all ${scene.ell} evaluate to O under φ (checked)`
+          : `✗ only ${collapsed} of the ${kernelCount} affine kernel points evaluated to O (this should never happen)`
+      }</code>
+    </div>
+    <div class="kv"><span>Preserved addition</span><code>P = ${fmtPoint(scene.P)}, Q = ${fmtPoint(scene.Q)}, P+Q = ${fmtPoint(scene.PQ)}  (on E₀)</code></div>
+    <div class="kv"><span></span><code>φ(P) = ${fmtPoint(scene.imgP)}, φ(Q) = ${fmtPoint(scene.imgQ)}  →  φ(P)+φ(Q) = ${fmtPoint(scene.sumOfImages)}  (added on E′)</code></div>
+    <div class="kv result ${scene.homomorphismHolds ? 'ok' : 'bad'}">
+      <span>Homomorphism</span>
+      <code>${
+        scene.homomorphismHolds
+          ? `✓ φ(P+Q) = ${fmtPoint(scene.imgPQ)} = φ(P)+φ(Q) — compared just now, not assumed`
+          : `✗ φ(P+Q) = ${fmtPoint(scene.imgPQ)} but φ(P)+φ(Q) = ${fmtPoint(scene.sumOfImages)} — φ is not a homomorphism here (this should never happen)`
+      }</code>
+    </div>
     <div class="kv"><span>Point count</span><code>#E₀ = ${countPoints(PARAMS.E0)},  #E′ = ${countPoints(c)}  (both = p+1)</code></div>
     <div class="kv"><span>Codomain supersingular?</span><code>${ss ? '✓ yes' : '✗ no'}</code></div>
   `;

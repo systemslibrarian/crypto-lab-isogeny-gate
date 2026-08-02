@@ -39,10 +39,13 @@ describe('UI wiring', () => {
     expect(out).toContain('supersingular');
   });
 
-  it('exhibit 1 shows the kernel collapsing to the identity', () => {
+  it('exhibit 1 shows the kernel collapsing to the identity, verified per point', () => {
     document.getElementById('btn-run-isogeny')!.dispatchEvent(new Event('click'));
     const out = document.getElementById('isogeny-output')!.textContent ?? '';
-    expect(out).toContain('collapse to O');
+    // The verdict is computed by evaluating φ on every kernel point, not asserted:
+    // "✓ ⟨K⟩ has ℓ points … and all ℓ evaluate to O under φ (checked)".
+    expect(out).toContain('evaluate to O under φ (checked)');
+    expect(out).not.toContain('this should never happen');
     expect(out).toContain('Homomorphism');
   });
 

@@ -9,6 +9,21 @@ import { expect, test, type Page } from '@playwright/test';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
+/**
+ * The body transitions background-color/color over 0.3s on theme change, so a
+ * scan fired right after the toggle click reads mid-blend colors and reports
+ * phantom contrast failures. Zero out motion so axe sees endpoint colors —
+ * the endpoints themselves are still fully asserted.
+ */
+async function neutralizeMotion(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: `*,*::before,*::after{
+      animation-duration:0s!important;animation-delay:0s!important;
+      transition-duration:0s!important;transition-delay:0s!important;
+    }`,
+  });
+}
+
 async function openAllDetails(page: Page): Promise<void> {
   await page.evaluate(() => {
     for (const details of document.querySelectorAll('details')) {
@@ -30,12 +45,14 @@ async function scan(page: Page): Promise<void> {
 
 test('no WCAG A/AA violations in dark theme', async ({ page }) => {
   await page.goto('.');
+  await neutralizeMotion(page);
   await openAllDetails(page);
   await scan(page);
 });
 
 test('no WCAG A/AA violations in light theme', async ({ page }) => {
   await page.goto('.');
+  await neutralizeMotion(page);
   await page.locator('#cl-theme-toggle').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await openAllDetails(page);

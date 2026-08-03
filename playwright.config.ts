@@ -10,7 +10,7 @@ import { defineConfig, devices } from '@playwright/test';
  * e2e/a11y.spec.ts  — axe-core WCAG A/AA regression gate (both themes).
  */
 
-const PORT = 4361;
+const PORT = 4653;
 export const BASE_URL = `http://localhost:${PORT}/crypto-lab-isogeny-gate/`;
 
 export default defineConfig({

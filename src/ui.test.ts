@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll } from 'vitest';
+import { PARAMS, groupAction } from './csidh';
+import { jInvariant } from './ec';
 
 /**
  * Smoke test: load the real UI module into jsdom, click each exhibit's button,
@@ -102,6 +104,155 @@ describe('UI wiring', () => {
     const target = /j = (\d+)/.exec(out);
     expect(target).not.toBeNull();
     expect(kex).toContain(`j = ${target![1]} `);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Exhibit 3 — learner-supplied secrets
+ *
+ * The picker's whole claim is "nothing here is a preset": the exponents typed
+ * in must drive the same Vélu group action the random exchange drives. These
+ * tests check that against csidh.ts directly, and check that the advertised
+ * bound is actually enforced rather than merely written on the field.
+ * ------------------------------------------------------------------ */
+
+describe('exhibit 3 secret picker', () => {
+  const field = (id: string) => document.getElementById(id) as HTMLInputElement;
+  const setSecrets = (a: [string, string], b: [string, string]) => {
+    field('in-alice-a').value = a[0];
+    field('in-alice-b').value = a[1];
+    field('in-bob-a').value = b[0];
+    field('in-bob-b').value = b[1];
+  };
+  const use = () => document.getElementById('btn-use-secrets')!.dispatchEvent(new Event('click'));
+  const summary = () => (document.getElementById('sidh-output')!.textContent ?? '').replace(/\s+/g, ' ');
+  const error = () => (document.getElementById('secret-error')!.textContent ?? '').trim();
+
+  it('the picker fields describe the exchange on screen, not stale defaults', () => {
+    document.getElementById('btn-run-sidh')!.dispatchEvent(new Event('click'));
+    const out = summary();
+    const alice = /Alice secret\s*\[(\d+), (\d+)\]/.exec(out)!;
+    const bob = /Bob secret\s*\[(\d+), (\d+)\]/.exec(out)!;
+    expect(field('in-alice-a').value).toBe(alice[1]);
+    expect(field('in-alice-b').value).toBe(alice[2]);
+    expect(field('in-bob-a').value).toBe(bob[1]);
+    expect(field('in-bob-b').value).toBe(bob[2]);
+  });
+
+  it('typed exponents drive the real group action, not a lookup table', () => {
+    setSecrets(['2', '1'], ['3', '0']);
+    use();
+    expect(error()).toBe('');
+    const out = summary();
+    expect(out).toContain('Alice secret[2, 1]');
+    expect(out).toContain('Bob secret[3, 0]');
+
+    // The published curves must be exactly what the Vélu arithmetic in csidh.ts
+    // produces for those exponents, computed here independently of the page.
+    const aliceJ = jInvariant(groupAction(PARAMS.E0, [2, 1]));
+    const bobJ = jInvariant(groupAction(PARAMS.E0, [3, 0]));
+    const sharedJ = jInvariant(groupAction(groupAction(PARAMS.E0, [3, 0]), [2, 1]));
+    expect(out).toContain(`Alice publicj = ${aliceJ}`);
+    expect(out).toContain(`Bob publicj = ${bobJ}`);
+    expect(out).toContain('both parties agree');
+    expect(out).toContain(`j = ${sharedJ}`);
+  });
+
+  it('a different exponent moves the public curve — the input is load-bearing', () => {
+    setSecrets(['1', '0'], ['1', '0']);
+    use();
+    const first = /Alice public\s*j = (\d+)/.exec(summary())![1];
+    setSecrets(['0', '1'], ['1', '0']);
+    use();
+    const second = /Alice public\s*j = (\d+)/.exec(summary())![1];
+    // One 5-isogeny and one 7-isogeny land on different vertices of the graph.
+    expect(second).not.toBe(first);
+    expect(second).toBe(String(jInvariant(groupAction(PARAMS.E0, [0, 1]))));
+  });
+
+  it('rejects an exponent past the bound instead of silently clamping it', () => {
+    setSecrets(['2', '2'], ['2', '2']);
+    use();
+    const before = summary();
+
+    setSecrets([String(PARAMS.expBound + 1), '0'], ['1', '1']);
+    use();
+    expect(error()).toContain(`between 0 and ${PARAMS.expBound}`);
+    // Rejected means unchanged: the previous exchange is still the one on screen.
+    expect(summary()).toBe(before);
+  });
+
+  it('rejects a negative exponent — there is no such thing as a −1 step walk', () => {
+    setSecrets(['2', '2'], ['2', '2']);
+    use();
+    const before = summary();
+    setSecrets(['-1', '0'], ['1', '1']);
+    use();
+    expect(error()).toContain(`between 0 and ${PARAMS.expBound}`);
+    expect(summary()).toBe(before);
+  });
+
+  it('rejects a fractional or non-numeric exponent', () => {
+    setSecrets(['2', '2'], ['2', '2']);
+    use();
+    const before = summary();
+
+    setSecrets(['1.5', '0'], ['1', '1']);
+    use();
+    expect(error()).toContain('whole number');
+    expect(summary()).toBe(before);
+
+    setSecrets(['', '0'], ['1', '1']);
+    use();
+    expect(error()).toContain('empty');
+    expect(summary()).toBe(before);
+  });
+
+  it('clears the error once a valid secret is accepted', () => {
+    setSecrets(['99', '0'], ['1', '1']);
+    use();
+    expect(error()).not.toBe('');
+    setSecrets(['1', '1'], ['1', '1']);
+    use();
+    expect(error()).toBe('');
+    expect(summary()).toContain('Alice secret[1, 1]');
+  });
+
+  it('Bob is validated too, not just Alice', () => {
+    setSecrets(['1', '1'], ['1', '1']);
+    use();
+    const before = summary();
+    setSecrets(['1', '1'], ['0', '99']);
+    use();
+    expect(error()).toContain("Bob's");
+    expect(summary()).toBe(before);
+  });
+
+  /**
+   * Exhibit 3 names the exact vector exhibit 4's brute force will return. That
+   * is a prediction about another panel, so it has to be checked against that
+   * panel actually running — a claim about a search is worth nothing if the
+   * search disagrees.
+   */
+  it('the collision class exhibit 3 predicts is what exhibit 4 recovers', async () => {
+    setSecrets(['4', '3'], ['2', '2']);
+    use();
+    const predicted = /it will report \[(\d+), (\d+)\]|only one of the/.exec(
+      document.getElementById('collision-class')!.textContent ?? ''
+    );
+    expect(predicted, 'exhibit 3 must say what exhibit 4 will find').not.toBeNull();
+
+    document.getElementById('btn-run-attack')!.dispatchEvent(new Event('click'));
+    const out = (await settle('attack-output', 'toy broken')).replace(/\s+/g, ' ');
+    const recovered = /Recovered secret\s*\[(\d+), (\d+)\]/.exec(out)!;
+
+    if (predicted![1] !== undefined) {
+      expect(`${recovered[1]},${recovered[2]}`).toBe(`${predicted![1]},${predicted![2]}`);
+    } else {
+      // No collisions: the only vector reaching the curve is Alice's own.
+      expect(`${recovered[1]},${recovered[2]}`).toBe('4,3');
+    }
+    expect(out).toContain('✓ yes'); // and it does reproduce the public key
   });
 });
 

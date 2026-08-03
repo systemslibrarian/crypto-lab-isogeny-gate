@@ -324,6 +324,70 @@ canvas {
 }
 
 /* ------------------------------------------------------------------ *
+ * Secret picker (exhibit 3)
+ * ------------------------------------------------------------------ */
+
+.secret-picker {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background-color: var(--c-bg);
+}
+
+.secret-picker legend {
+  padding: 0 0.4rem;
+  font-weight: 700;
+  color: var(--c-accent-strong);
+}
+
+.secret-picker-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--c-muted);
+}
+
+.secret-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.secret-who {
+  font-weight: 700;
+  min-width: 4rem;
+}
+
+.secret-row label {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+}
+
+.secret-row input[type='number'] {
+  font: inherit;
+  width: 4.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background-color: var(--c-surface);
+  color: var(--c-text);
+}
+
+.secret-error {
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+  color: var(--c-leak);
+}
+
+/* An empty alert must not reserve a line or read as an announcement. */
+.secret-error:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ *
  * Buttons
  * ------------------------------------------------------------------ */
 

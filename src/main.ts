@@ -26,6 +26,7 @@ import {
   candidateAt,
   groupAction,
   groupActionPath,
+  randomSecret,
   type Secret,
 } from './csidh';
 import {
@@ -248,6 +249,34 @@ app.innerHTML = `
           role="img" aria-label="Alice's and Bob's key-exchange walks animated on the isogeny graph, converging on a single shared-secret vertex"></canvas>
       </div>
       <p class="legend" id="kex-legend"></p>
+      <fieldset class="secret-picker">
+        <legend>Choose the secrets yourself</legend>
+        <p class="secret-picker-note">
+          Each exponent is how many times that party walks in that ℓ-direction, so
+          it runs from 0 to ${PARAMS.expBound}. Nothing here is a preset: the
+          exponents you type go straight into the same Vélu arithmetic, and
+          exhibit 4 then attacks <em>your</em> Alice.
+        </p>
+        <div class="secret-row">
+          <span class="secret-who">Alice</span>
+          <label for="in-alice-a">${ELL_A}-isogenies</label>
+          <input id="in-alice-a" type="number" min="0" max="${PARAMS.expBound}" step="1" value="0" inputmode="numeric" />
+          <label for="in-alice-b">${ELL_B}-isogenies</label>
+          <input id="in-alice-b" type="number" min="0" max="${PARAMS.expBound}" step="1" value="0" inputmode="numeric" />
+        </div>
+        <div class="secret-row">
+          <span class="secret-who">Bob</span>
+          <label for="in-bob-a">${ELL_A}-isogenies</label>
+          <input id="in-bob-a" type="number" min="0" max="${PARAMS.expBound}" step="1" value="0" inputmode="numeric" />
+          <label for="in-bob-b">${ELL_B}-isogenies</label>
+          <input id="in-bob-b" type="number" min="0" max="${PARAMS.expBound}" step="1" value="0" inputmode="numeric" />
+        </div>
+        <div class="controls">
+          <button id="btn-use-secrets" type="button">Run the exchange with these secrets</button>
+          <button id="btn-random-secrets" type="button" class="btn-secondary">Randomise both</button>
+        </div>
+        <p id="secret-error" class="secret-error" role="alert"></p>
+      </fieldset>
       <div class="controls">
         <button id="btn-run-sidh" type="button">Animate the key exchange</button>
       </div>
@@ -1024,6 +1053,13 @@ interface SelfCheck {
   orderAgrees: number;
   /** How many distinct curves those vectors actually reach. */
   distinctCurves: number;
+  /**
+   * Vertex id reached by candidate `idx`, for every idx in the key space. This
+   * is what lets exhibit 3 name the *whole* collision class of a chosen secret
+   * (every exponent vector producing the same public curve) instead of quoting
+   * an aggregate collision rate at the learner.
+   */
+  nodeByIdx: number[];
 }
 
 let selfCheckCache: SelfCheck | null = null;
@@ -1032,6 +1068,7 @@ function runSelfCheck(): SelfCheck {
   if (selfCheckCache) return selfCheckCache;
   const model = describeGraphModel(graph);
   const reached = new Set<number>();
+  const nodeByIdx: number[] = [];
   let walkAgrees = 0;
   let orderAgrees = 0;
 
@@ -1045,6 +1082,7 @@ function runSelfCheck(): SelfCheck {
     if (endA.nodeId === viaAction) walkAgrees += 1;
     if (endA.nodeId === endB.nodeId) orderAgrees += 1;
     reached.add(viaAction);
+    nodeByIdx[idx] = viaAction;
   }
 
   selfCheckCache = {
@@ -1058,8 +1096,28 @@ function runSelfCheck(): SelfCheck {
     // Vertices are isomorphism classes, so distinct vertices reached is exactly
     // the number of distinct public keys the key space can produce.
     distinctCurves: reached.size,
+    nodeByIdx,
   };
   return selfCheckCache;
+}
+
+/**
+ * Every exponent vector in the key space that reaches the same curve as
+ * `secret`, in brute-force enumeration order (first exponent fastest).
+ *
+ * Computed by acting with all KEY_SPACE candidates and comparing vertices — not
+ * by any closed form — so it is the ground truth exhibit 4's search must agree
+ * with. `predicted` is the vector the brute force will return, because it tests
+ * candidates in exactly this order and stops at the first match.
+ */
+function collisionClass(secret: Secret): { members: Secret[]; predicted: Secret } {
+  const { nodeByIdx } = runSelfCheck();
+  const target = nodeIdForCurve(graph, groupAction(PARAMS.E0, secret));
+  const members: Secret[] = [];
+  for (let idx = 0; idx < KEY_SPACE; idx++) {
+    if (nodeByIdx[idx] === target) members.push(candidateAt(idx));
+  }
+  return { members, predicted: members[0] };
 }
 
 /** Shared with exhibit 4, which needs the same collapse numbers. */
@@ -1137,7 +1195,109 @@ function drawKex(overlays: OverlayPath[], sharedId: number | null) {
  */
 let exchange = keyExchange();
 
+/**
+ * The same exchange {@link keyExchange} performs, but with both secrets supplied
+ * rather than drawn at random. Same group action, same commutativity check —
+ * nothing about the mathematics changes when the learner picks the exponents.
+ */
+function exchangeFromSecrets(aliceSecret: Secret, bobSecret: Secret): typeof exchange {
+  const alice = { secret: aliceSecret, publicCurve: groupAction(PARAMS.E0, aliceSecret) };
+  const bob = { secret: bobSecret, publicCurve: groupAction(PARAMS.E0, bobSecret) };
+  const aliceShared = groupAction(bob.publicCurve, aliceSecret);
+  const bobShared = groupAction(alice.publicCurve, bobSecret);
+  return {
+    alice,
+    bob,
+    aliceShared,
+    bobShared,
+    sharedInvariant: jInvariant(aliceShared),
+    agree: isIsomorphic(aliceShared, bobShared),
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Exhibit 3 — learner-supplied secrets
+ *
+ * The picker is not a menu of presets. Whatever exponents come out of these
+ * four fields go into {@link exchangeFromSecrets}, which calls the same
+ * {@link groupAction} — the same Vélu isogeny arithmetic — that the random
+ * exchange calls, and exhibit 4 then brute-forces the resulting public curve.
+ * ------------------------------------------------------------------ */
+
+const secretInputs = {
+  alice: [
+    document.getElementById('in-alice-a') as HTMLInputElement,
+    document.getElementById('in-alice-b') as HTMLInputElement,
+  ],
+  bob: [
+    document.getElementById('in-bob-a') as HTMLInputElement,
+    document.getElementById('in-bob-b') as HTMLInputElement,
+  ],
+};
+const secretError = document.getElementById('secret-error') as HTMLParagraphElement;
+
+function sameSecret(a: Secret, b: Secret): boolean {
+  return a.length === b.length && a.every((e, i) => e === b[i]);
+}
+
+/** Write the exchange actually on screen back into the picker fields. */
+function syncSecretInputs(r: typeof exchange) {
+  secretInputs.alice.forEach((el, i) => {
+    el.value = String(r.alice.secret[i]);
+  });
+  secretInputs.bob.forEach((el, i) => {
+    el.value = String(r.bob.secret[i]);
+  });
+}
+
+/**
+ * Read one party's exponents, enforcing the bound the field advertises.
+ *
+ * The bound is real arithmetic, not decoration: an exponent is a count of
+ * ℓ-isogeny steps, so it must be a non-negative integer, and the brute force in
+ * exhibit 4 enumerates exactly `0..expBound` per exponent — a secret outside
+ * that box would be a secret its own key-space grid does not contain, and
+ * exhibit 4 would then report "no vector reproduced the public key" about a key
+ * this page had just told the learner to make. `type=number` alone does not
+ * enforce it: browsers happily hand back an out-of-range or fractional value.
+ */
+function readSecret(fields: HTMLInputElement[], who: string): Secret | string {
+  const out: Secret = [];
+  for (let i = 0; i < fields.length; i++) {
+    const raw = fields[i].value.trim();
+    const ell = PARAMS.ells[i];
+    if (raw === '') return `${who}'s ${ell}-isogeny exponent is empty — enter a whole number from 0 to ${PARAMS.expBound}.`;
+    const n = Number(raw);
+    if (!Number.isInteger(n)) {
+      return `${who}'s ${ell}-isogeny exponent must be a whole number of steps, not "${raw}".`;
+    }
+    if (n < 0 || n > PARAMS.expBound) {
+      return `${who}'s ${ell}-isogeny exponent must be between 0 and ${PARAMS.expBound} — ${n} is outside the key space exhibit 4 searches.`;
+    }
+    out.push(n);
+  }
+  return out;
+}
+
 function renderExchangeSummary(r: typeof exchange) {
+  // The picker fields must always describe the exchange on screen, whether the
+  // learner typed those exponents or the random button drew them. Syncing here,
+  // in the one function that renders the exchange, is what makes it impossible
+  // for the inputs and the summary to name different Alices.
+  syncSecretInputs(r);
+
+  const cls = collisionClass(r.alice.secret);
+  const isFirst = cls.predicted.every((e, i) => e === r.alice.secret[i]);
+  const others = cls.members.filter((m) => !sameSecret(m, r.alice.secret));
+  const collision =
+    others.length === 0
+      ? `none — [${r.alice.secret.join(', ')}] is the only one of the ${KEY_SPACE} exponent vectors that reaches this curve, so the search can only return hers`
+      : `${cls.members.length} of the ${KEY_SPACE} exponent vectors reach this same curve: ${cls.members
+          .map((m) => `[${m.join(', ')}]`)
+          .join(', ')}. Exhibit 4 searches them in that order and stops at the first, so it will report [${cls.predicted.join(', ')}]${
+          isFirst ? ' — which is Alice&rsquo;s own vector' : ' — an equivalent key, not Alice&rsquo;s literal one'
+        }`;
+
   sidhOutput.innerHTML = `
     <div class="kv"><span>Alice secret</span><code>[${r.alice.secret.join(', ')}]  =  ${fmtSecret(r.alice.secret)}</code></div>
     <div class="kv"><span>Bob secret</span><code>[${r.bob.secret.join(', ')}]  =  ${fmtSecret(r.bob.secret)}</code></div>
@@ -1149,6 +1309,7 @@ function renderExchangeSummary(r: typeof exchange) {
       <span>Shared secret</span>
       <code>${r.agree ? `✓ both parties agree — the diamonds close on the same vertex:  j = ${r.sharedInvariant}` : '✗ disagreement (should never happen)'}</code>
     </div>
+    <div class="kv"><span id="collision-label">Equivalent secrets</span><code id="collision-class">${collision}</code></div>
   `;
 }
 
@@ -1156,9 +1317,18 @@ function renderExchangeSummary(r: typeof exchange) {
 // attack runs, whichever button the reader presses first.
 renderExchangeSummary(exchange);
 
-document.getElementById('btn-run-sidh')!.addEventListener('click', () => {
+/**
+ * Put `next` on screen: it becomes *the* exchange, exhibit 4's stale attack on
+ * the previous one is cleared, the four walks animate, and the summary re-renders.
+ *
+ * Every route to a new exchange — the random button, the picker, the randomise
+ * button — goes through here, so a learner-supplied secret is animated, summarised
+ * and attacked by exactly the same code as a random one. There is no second path
+ * that could show them different things.
+ */
+function showExchange(next: typeof exchange) {
   cancelKexAnim();
-  exchange = keyExchange();
+  exchange = next;
   const r = exchange;
   resetAttackPanel();
 
@@ -1211,6 +1381,31 @@ document.getElementById('btn-run-sidh')!.addEventListener('click', () => {
   });
 
   renderExchangeSummary(r);
+}
+
+document.getElementById('btn-run-sidh')!.addEventListener('click', () => {
+  secretError.textContent = '';
+  showExchange(keyExchange());
+});
+
+document.getElementById('btn-use-secrets')!.addEventListener('click', () => {
+  const alice = readSecret(secretInputs.alice, 'Alice');
+  const bob = readSecret(secretInputs.bob, 'Bob');
+  // Report the first problem and change nothing: silently clamping a rejected
+  // exponent would run an exchange the learner did not ask for while their own
+  // number sat in the box beside it.
+  if (typeof alice === 'string' || typeof bob === 'string') {
+    secretError.textContent = typeof alice === 'string' ? alice : (bob as string);
+    return;
+  }
+  secretError.textContent = '';
+  showExchange(exchangeFromSecrets(alice, bob));
+});
+
+document.getElementById('btn-random-secrets')!.addEventListener('click', () => {
+  secretError.textContent = '';
+  // Draw into the fields and run from the fields, so what is typed is what ran.
+  showExchange(exchangeFromSecrets(randomSecret(), randomSecret()));
 });
 
 /* ------------------------------------------------------------------ *

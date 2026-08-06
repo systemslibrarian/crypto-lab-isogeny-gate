@@ -16,12 +16,7 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
  * the endpoints themselves are still fully asserted.
  */
 async function neutralizeMotion(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content: `*,*::before,*::after{
-      animation-duration:0s!important;animation-delay:0s!important;
-      transition-duration:0s!important;transition-delay:0s!important;
-    }`,
-  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
 }
 
 async function openAllDetails(page: Page): Promise<void> {
@@ -46,6 +41,7 @@ async function scan(page: Page): Promise<void> {
 test('no WCAG A/AA violations in dark theme', async ({ page }) => {
   await page.goto('.');
   await neutralizeMotion(page);
+  await expect(page.locator('h1')).toBeVisible();
   await openAllDetails(page);
   await scan(page);
 });
@@ -55,6 +51,7 @@ test('no WCAG A/AA violations in light theme', async ({ page }) => {
   await neutralizeMotion(page);
   await page.locator('#cl-theme-toggle').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('h1')).toBeVisible();
   await openAllDetails(page);
   await scan(page);
 });

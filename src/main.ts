@@ -349,7 +349,12 @@ app.innerHTML = `
     </section>
   </main>
 
-  <div id="gloss-popover" class="gloss-popover" role="tooltip" aria-label="Glossary definition" hidden></div>
+  <!-- No aria-label here. An aria-label on a tooltip REPLACES its text content
+       as the accessible name, so this element used to announce itself as
+       "Glossary definition" and the definition itself was never read. The
+       content is the name; the term button points at it with aria-describedby
+       while it is open. -->
+  <div id="gloss-popover" class="gloss-popover" role="tooltip" hidden></div>
 
   <footer class="scripture-footer">
     <p>Related demos:
@@ -399,7 +404,10 @@ function graphColors(): GraphColors {
     nodeText: cssVar('--canvas-bg'),
     start: cssVar('--c-shared'),
     highlight: cssVar('--c-alice'),
-    edge: cssVar('--c-edge'),
+    // Fallback stroke for an ℓ with no colour of its own. It has never fired —
+    // both ℓ values are in `ellEdge` — but a graph edge is a meaningful
+    // graphic, so if it ever does it must already meet 1.4.11's 3:1.
+    edge: cssVar('--c-control-border'),
     ellEdge: { [ELL_A]: cssVar('--c-ell-a'), [ELL_B]: cssVar('--c-ell-b') },
     label: cssVar('--c-text'),
   };
@@ -490,7 +498,13 @@ let glossAnchor: HTMLElement | null = null;
 
 function hideGloss() {
   glossPopover.hidden = true;
-  if (glossAnchor) glossAnchor.setAttribute('aria-expanded', 'false');
+  if (glossAnchor) {
+    glossAnchor.setAttribute('aria-expanded', 'false');
+    // The description is only true while the popover is on screen and holding
+    // THIS term's text, so the reference is dropped with it. Leaving it behind
+    // would point a screen reader at a hidden element describing another word.
+    glossAnchor.removeAttribute('aria-describedby');
+  }
   glossAnchor = null;
 }
 
@@ -502,10 +516,23 @@ function showGloss(btn: HTMLElement) {
     hideGloss();
     return;
   }
+  // Clicking a second term while a first is open used to leave the first
+  // button reporting aria-expanded="true" forever, so two buttons claimed an
+  // open popover when only one existed. Clear the previous anchor first.
+  if (glossAnchor && glossAnchor !== btn) {
+    glossAnchor.setAttribute('aria-expanded', 'false');
+    glossAnchor.removeAttribute('aria-describedby');
+  }
   glossPopover.textContent = text;
   glossPopover.hidden = false;
   glossAnchor = btn;
   btn.setAttribute('aria-expanded', 'true');
+  // Without this the definition is unreachable to a screen reader: the popover
+  // is not in the button's subtree and nothing referenced it, so activating a
+  // glossary term announced a state change and no definition. See index.html
+  // for the matching removal of the popover's own aria-label, which was
+  // overriding the definition text with the words "Glossary definition".
+  btn.setAttribute('aria-describedby', 'gloss-popover');
   const r = btn.getBoundingClientRect();
   const top = r.bottom + window.scrollY + 6;
   const maxLeft = window.scrollX + document.documentElement.clientWidth - glossPopover.offsetWidth - 12;
@@ -671,6 +698,29 @@ function buildScene(): IsogenyScene {
   };
 }
 
+/**
+ * Stroke a 1px rectangle so the line lands on whole device pixels.
+ *
+ * A 1px stroke is centred on its path, so at integer coordinates it straddles
+ * two pixel columns and the compositor paints each at half strength. That
+ * halves the line's contrast against the canvas: measured from the shipped
+ * build, the exhibit-1 box outline was authored at 2.25:1 (dark) and rendered
+ * at 1.43:1 — an antialiasing artefact silently eating a WCAG 1.4.11 boundary.
+ * Snapping to half-integer coordinates makes the same stroke crisp, so the
+ * colour in the stylesheet is the colour on screen.
+ */
+function strokeRectCrisp(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number
+): void {
+  const x0 = Math.round(x) + 0.5;
+  const y0 = Math.round(y) + 0.5;
+  ctx.strokeRect(x0, y0, Math.round(x + w) - Math.round(x) - 1, Math.round(y + h) - Math.round(y) - 1);
+}
+
 // Geometry helpers shared by the render.
 function isogLayout(cssW: number, cssH: number) {
   const pad = 20;
@@ -708,7 +758,12 @@ function renderIsogeny() {
   ctx.fillRect(0, 0, cssW, cssH);
 
   const textColor = cssVar('--c-text');
-  const edge = cssVar('--c-edge');
+  // These two rectangles are what separates "the domain curve E₀" from "the
+  // codomain curve E′" — the whole point of the exhibit is which cloud a point
+  // is in — so they are a meaningful graphic and owe 1.4.11 its 3:1. They used
+  // to be drawn in --c-edge, a decorative hairline that measured 2.25:1 (dark)
+  // / 1.90:1 (light) and rendered at 1.43:1 / 1.36:1 once antialiased.
+  const edge = cssVar('--c-control-border');
   const { left, right } = isogLayout(cssW, cssH);
 
   // Titles + boxes.
@@ -718,8 +773,8 @@ function renderIsogeny() {
   ctx.fillText(`E₀  (j = ${jInvariant(PARAMS.E0)})`, left.x + left.w / 2, left.y - 10);
   ctx.strokeStyle = edge;
   ctx.lineWidth = 1;
-  ctx.strokeRect(left.x, left.y, left.w, left.h);
-  ctx.strokeRect(right.x, right.y, right.w, right.h);
+  strokeRectCrisp(ctx, left.x, left.y, left.w, left.h);
+  strokeRectCrisp(ctx, right.x, right.y, right.w, right.h);
 
   if (!scene) {
     ctx.fillStyle = cssVar('--c-muted');
@@ -1446,7 +1501,13 @@ function drawKeyspace(tested: number, matchIdx: number | null) {
   const ox = marginL;
   const oy = marginT;
 
-  const border = cssVar('--c-border');
+  // The grid IS exhibit 4's graphic — "the grid below is the entire key space,
+  // one cell per candidate exponent vector" — so its cell boundaries owe 1.4.11
+  // its 3:1. An untested cell is --c-surface on --canvas-bg, 1.08:1 (dark) /
+  // 1.03:1 (light): the fill cannot delineate anything, and with the strokes
+  // drawn in the decorative --c-border (1.62:1 / 1.49:1) the grid the prose
+  // points at simply did not render until the search started lighting cells.
+  const border = cssVar('--c-control-border');
   const untested = cssVar('--c-surface');
   const testedCol = cssVar('--c-ell-b');
   const matchCol = cssVar('--c-shared');
@@ -1463,7 +1524,7 @@ function drawKeyspace(tested: number, matchIdx: number | null) {
     ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
     ctx.strokeStyle = border;
     ctx.lineWidth = 1;
-    ctx.strokeRect(x + 1, y + 1, cell - 2, cell - 2);
+    strokeRectCrisp(ctx, x + 1, y + 1, cell - 2, cell - 2);
     if (isMatch) {
       ctx.fillStyle = cssVar('--canvas-bg');
       ctx.font = 'bold 12px ui-monospace, monospace';

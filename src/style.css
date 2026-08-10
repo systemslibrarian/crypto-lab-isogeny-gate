@@ -1,7 +1,33 @@
 /* ------------------------------------------------------------------ *
- * Theme tokens. Colours are chosen so body text and UI controls meet
- * WCAG AA contrast (>= 4.5:1 for text) against their backgrounds in
- * both themes.
+ * Theme tokens.
+ *
+ * TWO boundary tokens, and the difference between them is load-bearing.
+ *
+ *   --c-border          a DECORATIVE hairline. Section cards, `.kv` rows, the
+ *                       fieldset, the footer rule. Nothing depends on seeing
+ *                       it: the panel it edges is already delimited by its own
+ *                       background and its heading. It measures ~1.5:1 against
+ *                       the surfaces it sits on, which is what a hairline is
+ *                       for and is fine for content that is not a control.
+ *
+ *   --c-control-border  the boundary of a CONTROL or of a line inside a figure
+ *                       that carries meaning. WCAG 1.4.11 requires 3:1 for
+ *                       these against the adjacent surface, and it is the one
+ *                       requirement no automated check in this repo could see
+ *                       until `contrast.test.ts` grew the 1.4.11 block below.
+ *
+ * Both were `--c-border` until an audit measured them from screenshot pixels.
+ * The three controls that had nothing but a hairline to delineate them came
+ * out at 1.46-1.69:1 in both themes: the `.btn-secondary` buttons (which are
+ * `background: transparent`, so their border IS the control), the four
+ * exponent `<input type=number>` boxes, and the key-space grid in exhibit 4 —
+ * whose cells are `--c-surface` on `--canvas-bg`, 1.03-1.08:1, so the grid the
+ * prose tells you to look at did not render at all until the search lit it up.
+ *
+ * --c-control-border measures 3.88:1 (dark) / 3.61:1 (light) against the
+ * WORST — i.e. nearest — surface it lands on, which is `--c-surface`; it is
+ * higher against `--c-bg` and `--canvas-bg`. If you retune a surface, retune
+ * this against the closest one, not the most convenient one.
  * ------------------------------------------------------------------ */
 
 :root,
@@ -15,13 +41,13 @@
   --c-accent: #5ad6ff;
   --c-accent-strong: #8ee4ff;
   --c-border: #2c376b;
+  --c-control-border: #6a76ac;
 
   --canvas-bg: #0c1330;
   --c-alice: #3ee08a;
   --c-bob: #ff7ad6;
   --c-shared: #ffd24a;
   --c-leak: #ff6080;
-  --c-edge: #3c4a93;
   --c-ell-a: #5ad6ff;
   --c-ell-b: #c08bff;
 }
@@ -36,13 +62,13 @@
   --c-accent: #0b63b8;
   --c-accent-strong: #094a8c;
   --c-border: #c5cef0;
+  --c-control-border: #767fb0;
 
   --canvas-bg: #f8faff;
   --c-alice: #0a7a42;
   --c-bob: #b0179e;
   --c-shared: #9a6200;
   --c-leak: #c01f3f;
-  --c-edge: #aab6e8;
   --c-ell-a: #0b63b8;
   --c-ell-b: #7a3cd0;
 }
@@ -267,8 +293,12 @@ code {
   align-items: center;
 }
 
+/* `background-color: transparent` is inherited from `button`, so this border is
+ * the ONLY thing that delineates a secondary button from the section behind it.
+ * That makes it a WCAG 1.4.11 boundary, not a decoration: measured from the
+ * shipped screenshot it was --c-border at 1.51:1 (dark) / 1.46:1 (light). */
 .btn-secondary {
-  border-color: var(--c-border);
+  border-color: var(--c-control-border);
   color: var(--c-muted);
 }
 
@@ -277,13 +307,15 @@ code {
   color: var(--c-text);
 }
 
+/* A swatch is a graphic that carries meaning — it is the key tying a sentence
+ * to a colour in the canvas beside it — so its outline is a 1.4.11 boundary. */
 .swatch-inline {
   display: inline-block;
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 3px;
   vertical-align: middle;
-  border: 1px solid var(--c-border);
+  border: 1px solid var(--c-control-border);
 }
 
 .swatch-kernel {
@@ -366,12 +398,16 @@ canvas {
   color: var(--c-muted);
 }
 
+/* The input's own fill is --c-surface on the fieldset's --c-bg: 1.12:1 (dark) /
+ * 1.07:1 (light), so the fill cannot be the boundary and the border has to be.
+ * It was --c-border at 1.69:1 / 1.56:1 — the four exponent boxes had no
+ * perceivable edge in either theme. */
 .secret-row input[type='number'] {
   font: inherit;
   width: 4.5rem;
   padding: 0.35rem 0.5rem;
   border-radius: 8px;
-  border: 1px solid var(--c-border);
+  border: 1px solid var(--c-control-border);
   background-color: var(--c-surface);
   color: var(--c-text);
 }

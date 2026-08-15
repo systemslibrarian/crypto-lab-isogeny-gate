@@ -45,7 +45,11 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Accessibility gate (axe WCAG A/AA)
+      # `test:a11y` is bare `playwright test` — identical to `test:e2e` — so it
+      # runs app.spec.ts and claims.spec.ts as well as a11y.spec.ts. The
+      # functional browser assertions gate this deploy too, not just the axe
+      # pass. The unit suite is already gated above, before the build.
+      - name: Browser claims and accessibility gate
         run: npm run test:a11y
 
       - name: Upload artifact

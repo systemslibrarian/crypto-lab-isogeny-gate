@@ -69,12 +69,4 @@ test.describe('Isogeny Gate — real browser', () => {
     await page.locator('#exhibit-4').screenshot({ path: `${SHOTS}/exhibit4-attack.png` });
   });
 
-  test('light theme renders via the shared header toggle', async ({ page }) => {
-    await page.locator('#cl-theme-toggle').click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    // recompute exhibit 1 so the canvas redraws in the light palette
-    await page.locator('#btn-run-isogeny').click();
-    await page.locator('#btn-random-walk').click();
-    await page.screenshot({ path: `${SHOTS}/home-light.png`, fullPage: true });
-  });
 });

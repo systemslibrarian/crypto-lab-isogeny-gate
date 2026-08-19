@@ -69,8 +69,6 @@ app.innerHTML = `
         cautionary tale.
       </p>
     </aside>
-    <button class="theme-toggle-btn" id="theme-toggle" type="button"
-      aria-label="Toggle color theme">🌙</button>
   </header>
 
   <main>
@@ -369,29 +367,12 @@ app.innerHTML = `
 `;
 
 /* ------------------------------------------------------------------ *
- * Theme handling — re-render canvases when the theme changes (either
- * via the in-page toggle or the shared Crypto Lab header toggle).
+ * Theme handling — the theme is pinned to dark by the literal in
+ * index.html's boot script and there is no way to change it from the
+ * page. Canvases read their colors from the CSS variables below.
  * ------------------------------------------------------------------ */
 
 const htmlEl = document.documentElement;
-function currentTheme(): 'light' | 'dark' {
-  return htmlEl.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-}
-
-const themeToggle = document.getElementById('theme-toggle') as HTMLButtonElement;
-function paintToggle() {
-  themeToggle.textContent = currentTheme() === 'dark' ? '🌙' : '☀️';
-}
-themeToggle.addEventListener('click', () => {
-  const next = currentTheme() === 'dark' ? 'light' : 'dark';
-  htmlEl.setAttribute('data-theme', next);
-  try {
-    localStorage.setItem('theme', next);
-  } catch {
-    /* ignore storage errors */
-  }
-});
-paintToggle();
 
 function cssVar(name: string): string {
   return getComputedStyle(htmlEl).getPropertyValue(name).trim();
@@ -1644,7 +1625,6 @@ document.getElementById('btn-run-attack')!.addEventListener('click', () => {
  * ------------------------------------------------------------------ */
 
 function renderAll() {
-  paintToggle();
   renderIsogeny();
   renderGraph();
   // Redraw the static/last-state canvases in the current theme. The kex canvas

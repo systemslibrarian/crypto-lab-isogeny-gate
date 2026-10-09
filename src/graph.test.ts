@@ -174,15 +174,29 @@ describe('what the drawing leaves out', () => {
   it('GF(419) has 36 supersingular classes and 18 supersingular j-invariants', () => {
     const classes: Curve[] = [];
     const js = new Set<string>();
+    const visited = new Set<string>();
+    // Exhaust every nonsingular coefficient pair, but count points once per
+    // GF(p)-isomorphism class. The bijection (x,y) -> (u²x,u³y) preserves
+    // rational points and maps (a,b) to (u⁴a,u⁶b). Re-counting all equivalent
+    // equations made this synchronous test take ~50s under Vitest 5.
     for (let a = 0n; a < PARAMS.p; a++) {
       for (let b = 0n; b < PARAMS.p; b++) {
         if ((4n * a * a * a + 27n * b * b) % PARAMS.p === 0n) continue;
+        if (visited.has(`${a},${b}`)) continue;
+        for (let u = 1n; u < PARAMS.p; u++) {
+          const u2 = u * u % PARAMS.p;
+          const u4 = u2 * u2 % PARAMS.p;
+          const u6 = u4 * u2 % PARAMS.p;
+          visited.add(`${a * u4 % PARAMS.p},${b * u6 % PARAMS.p}`);
+        }
         const curve: Curve = { a, b, p: PARAMS.p };
         if (countPoints(curve) !== PARAMS.p + 1n) continue;
         js.add(String(jInvariant(curve)));
-        if (!classes.some((k) => isIsomorphic(k, curve))) classes.push(curve);
+        classes.push(curve);
       }
     }
+    // There are p singular pairs out of p²; no nonsingular pair was omitted.
+    expect(visited.size).toBe(Number(PARAMS.p * (PARAMS.p - 1n)));
     expect(classes.length).toBe(36);
     expect(js.size).toBe(18);
     // The drawing is a proper part of that world, and the UI says so.

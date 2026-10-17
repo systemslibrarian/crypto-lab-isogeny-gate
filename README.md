@@ -87,6 +87,7 @@ Five interactive exhibits:
 
 ## What Can Go Wrong
 
+- **Mathematical hardness does not prevent implementation leakage.** [Kim et al., *Power Analysis on SQIsign via Ideal Reconstruction from Quaternion Leakages* (ePrint 2026/2508)](https://eprint.iacr.org/2026/2508), received 16 October and published 17 October 2026, is a **preprint** reporting key recovery from leaked intermediate values in Round-3 SQIsign signing, including partial leakage. The result is **attack-model-conditional**: it does not establish a public-key-only mathematical break of SQIsign or a break of CSIDH. This lab does not implement SQIsign or reproduce the reported power analysis.
 - **Auxiliary data can be the weakness.** SIDH published the images of torsion points under each party's secret isogeny; those images looked harmless for a decade and were exactly what the Castryck–Decru attack used to recover the secret.
 - **Long scrutiny is not proof of security.** SIDH survived eleven years of analysis (2011–2022), and SIKE four NIST rounds (2017–2022), before a fast *classical* break ended it.
 - **Toy parameters offer no security.** This demo's `GF(419)` field and tiny key space are for visibility only and are exhaustively breakable.

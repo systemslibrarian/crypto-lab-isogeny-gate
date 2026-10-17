@@ -333,12 +333,19 @@ app.innerHTML = `
     <section id="exhibit-5" aria-labelledby="h1-5">
       <h2 id="h1-5">5 · Lessons for post-quantum design</h2>
       <ul class="lessons">
-        <li><strong>Auxiliary information is attack surface.</strong> SIDH's torsion images looked harmless for ten years and were fatal. CSIDH publishes less, and survives.</li>
+        <li><strong>Auxiliary information is attack surface.</strong> SIDH's torsion images looked harmless for ten years and were fatal. This particular SIDH attack does not establish a break of CSIDH.</li>
         <li><strong>Beautiful math is not secure math.</strong> Isogenies are elegant; elegance and long scrutiny did not prevent the break.</li>
-        <li><strong>Different problems, different fates.</strong> The pure path-finding problem (CSIDH, SQIsign) still stands; only SIDH's extra structure broke.</li>
+        <li><strong>Different problems, different fates.</strong> The SIDH break exploits its extra structure; it does not automatically break the distinct assumptions used by CSIDH or SQIsign. Mathematical assumptions and implementation security need separate analysis.</li>
         <li><strong>Attacks become tools.</strong> The Castryck–Decru machinery now informs constructive isogeny work, including SQIsign.</li>
         <li><strong>Diversity is essential.</strong> NIST has <em>finalised</em> lattice-based (ML-KEM, FIPS&nbsp;203; ML-DSA, FIPS&nbsp;204) and hash-based (SLH-DSA, FIPS&nbsp;205) standards, and in March 2025 <em>selected</em> the code-based HQC as a fifth algorithm — that standard is still in progress, not yet published. Spreading across foundations means no single broken foundation is catastrophic.</li>
       </ul>
+      <p class="sqisign-update"><strong>SQIsign research update — 17 October 2026.</strong>
+          In <a href="https://eprint.iacr.org/2026/2508">Power Analysis on SQIsign via Ideal Reconstruction from Quaternion Leakages</a>
+          (received 16 October; published 17 October 2026), the authors report key recovery from
+          leaked intermediate values in Round-3 SQIsign signing, including partial leakage.
+          This preprint is conditional on implementation leakage; it does not establish a
+          public-key-only mathematical break of SQIsign or a break of CSIDH.
+          This lab does not implement SQIsign or reproduce the reported power analysis.</p>
       <p class="disclaimer">
         <strong>Not for production.</strong> Parameters here (<span class="m">p = ${PARAMS.p}</span>)
         are chosen for visibility and are trivially breakable. For real

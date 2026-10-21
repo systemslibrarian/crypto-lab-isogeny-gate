@@ -346,6 +346,11 @@ app.innerHTML = `
           This preprint is conditional on implementation leakage; it does not establish a
           public-key-only mathematical break of SQIsign or a break of CSIDH.
           This lab does not implement SQIsign or reproduce the reported power analysis.</p>
+      <p id="csidh-fault-research"><strong>Deterministic-CSIDH research — 20 October 2026.</strong>
+        Deterministic execution can make the same secret-dependent step easier to target repeatedly. Banegas, Dimitrova and Trimoska study fault attacks on deterministic CSIDH variants and OSIDH-LD. They recover full OSIDH-LD keys in software fault simulation and separately demonstrate a targeted instruction skip on ChipWhisperer-Lite hardware. This is not complete hardware key recovery or a public-key-only mathematical break of CSIDH. The result requires targeted fault injection and output observations; it is distinct from the SIDH/SIKE mathematical break.
+        <a href="https://eprint.iacr.org/2026/2542">From if to Oops: Turning a conditional into a key-recovery oracle</a>
+        is a preprint, received 19 October and approved 20 October 2026.
+        This lab does not implement the attacked variants or reproduce the fault experiment.</p>
       <p class="disclaimer">
         <strong>Not for production.</strong> Parameters here (<span class="m">p = ${PARAMS.p}</span>)
         are chosen for visibility and are trivially breakable. For real
@@ -1655,3 +1660,4 @@ window.addEventListener('resize', () => {
   drawKeyspace(0, null);
   hideGloss();
 });
+

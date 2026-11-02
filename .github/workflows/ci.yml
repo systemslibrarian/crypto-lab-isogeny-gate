@@ -8,6 +8,14 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege for every job that does not ask for more. `test` and `e2e`
+# only read this repository -- checkout, npm ci, typecheck, unit tests, build,
+# and Playwright against a local server. `dependabot-auto-merge` declares its
+# own wider block below, which overrides this for that job alone, so the bump
+# and deploy-dispatch path is unchanged.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

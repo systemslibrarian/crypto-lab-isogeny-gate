@@ -100,8 +100,10 @@ Five interactive exhibits:
 
 - **SIDH/SIKE** was a NIST PQC KEM candidate from round 1 (November 2017), still standing as a round-4 alternate when the July 2022 Castryck–Decru attack ended it; it is no longer recommended for any use.
 - **CSIDH** is studied as a compact, commutative isogeny key exchange with very small keys, of ongoing academic interest.
-- **SQIsign** is an isogeny-based signature submitted to NIST's additional-signatures process, notable for very small signatures.
+- **SQIsign** is an isogeny-based signature submitted to NIST's additional-signatures process, notable for very small signatures. It [advanced to round 3](https://csrc.nist.gov/News/2026/nist-advances-9-candidates-to-the-3rd-round-of-pqc) on 14 May 2026 as the only isogeny-based candidate — NIST IR 8610 gives the rationale — and its round-3 specification (version 3.0, 1 September 2026) raised the parameter sizes, listing an 83-byte public key and a 200-byte signature at NIST level I.
 - **Isogeny machinery** — including the higher-dimensional isogeny techniques behind the SIDH break — is now an active research tool across cryptography and number theory.
+
+**Standards reviewed 15 November 2026:** SQIsign's round status is from NIST IR 8610 (May 2026), which closed round 2 on 14 May 2026 and selected nine third-round candidates, SQIsign the only isogeny-based one. Sizes are from the round-3 SQIsign specification, version 3.0 (1 September 2026), Table 12. This lab implements CSIDH at toy parameters and does not implement SQIsign, so no SQIsign parameter or timing figure is reproduced here.
 
 ## How to Run Locally
 

@@ -17,50 +17,10 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build
-        run: npm run build
-
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox webkit
-
-      - name: Run end-to-end tests
-        run: npm run test:e2e
+  # Both halves of the gate live in gate.yml, called from here and from
+  # deploy.yml, so there is one copy rather than two kept equal by hand.
+  gate:
+    uses: ./.github/workflows/gate.yml
 
   # Dependabot only. Depends on every gate job in this workflow, so a bump can
   # only merge itself once this lab's whole PR gate went green. Majors are
@@ -68,7 +28,7 @@ jobs:
   # overwhelmingly majors (@noble v2 dropped export subpaths, TypeScript 7,
   # vitest 4), so those still want a human.
   dependabot-auto-merge:
-    needs: [test, e2e]
+    needs: gate
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:

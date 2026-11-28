@@ -122,6 +122,10 @@ npm run dev
 - [crypto-lab-multivariate](https://systemslibrarian.github.io/crypto-lab-multivariate/) — UOV multivariate signatures, another non-lattice PQ family.
 - [crypto-lab-lll-break](https://systemslibrarian.github.io/crypto-lab-lll-break/) — LLL/BKZ lattice reduction, the structure-breaking attack tradition in another PQ family.
 
+## Reading the toy graph
+
+The code walks in the positive rational directions of degrees 5 and 7 at p = 419. The canvas draws connections without arrowheads. Each implemented step moves forward in its chosen direction. To find a point for a step, the sampler tries an x-coordinate, tests whether the curve equation has a square root, and takes the root returned by the routine. It does not draw a fresh random sign for y.
+
 ## Why CSIDH, to tell SIDH's story?
 
 SIDH and CSIDH are cousins. SIDH had each party publish, alongside their curve,
